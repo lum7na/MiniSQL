@@ -75,6 +75,7 @@ public:
   Table(const Table &table_in);
 
   // int DataSize();  //每个tuple占的数据大小
+  void addTuple(Tuple& t);
 
   int setIndex(short index,std::string index_name);  //插入索引，输入要建立索引的Attribute的编号，以及索引的名字，成功返回1失败返回0
   int dropIndex(std::string index_name);  //删除索引，输入建立的索引的名字，成功返回1失败返回0
