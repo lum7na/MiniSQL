@@ -6,6 +6,8 @@
 #include <map>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
+#include <string.h>
 #include "basic.h"
 #include "const.h"
 #include "exception.h"
