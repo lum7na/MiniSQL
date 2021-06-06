@@ -30,8 +30,6 @@ class unique_conflict : public std::exception {};
 
 // Buffer_manager
 
-class page_not_exist : public std::exception {};
-
 class buffer_is_full : public std::exception {};
 
 #endif

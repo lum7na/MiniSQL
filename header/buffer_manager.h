@@ -29,8 +29,6 @@ class Page {
   int getPinCount();
   void setDirty(bool _dirty);
   bool getDirty();
-  void setAvaliable(bool _avaliable);
-  bool getAvaliable();
   char* getBuffer();
 
   bool operator<(Page& r) { return getUseCount() < r.getUseCount(); }
@@ -42,7 +40,6 @@ class Page {
   int use_count;          //记录被使用的次数
   int pin_count;          //记录被钉住的次数。被钉住的意思就是不可以被替换
   bool dirty;             // dirty记录页是否被修改
-  bool avaliable;         // avaliable标示页是否可以被使用(即将磁盘块load进该页)
 };
 
 // BufferManager类。对外提供操作缓冲区的接口。
@@ -75,6 +72,7 @@ class BufferManager {
   int getEmptyPageId();
   // 讲对应文件的对应块载入对应内存页，对于文件不存在返回-1，否则返回0
   int loadDiskBlock(int _page_id, std::string _file_name, int _block_id);
+  void addUse(int _id);  // 增加Page id的使用次数
 
   typedef __gnu_pbds::priority_queue<Page, std::less<Page>, __gnu_pbds::binomial_heap_tag> bheap;
   bheap heap;
