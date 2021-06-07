@@ -1,0 +1,77 @@
+#include "api.h"
+
+Table API::selectRecord(std::string table_name, std::vector<std::string> target_attr, std::vector<Where> where, char operation) {
+  if (target_attr.size() == 0) {
+    return record.selectRecord(table_name);
+  } else if (target_attr.size() == 1) {
+    return record.selectRecord(table_name, target_attr[0], where[0]);
+  } else {
+    Table table1 = record.selectRecord(table_name, target_attr[0], where[0]);
+    Table table2 = record.selectRecord(table_name, target_attr[1], where[1]);
+    if (operation) {
+      return joinTable(table1, table2, target_attr[0], where[0]);
+    } else {
+      return unionTable(table1, table2, target_attr[0], where[0]);
+    }
+  }
+}
+
+int API::deleteRecord(std::string table_name, std::string target_attr, Where where) {
+  int result = -1;
+  if (target_attr == "") {
+    result = record.deleteRecord(table_name);
+  } else {
+    result = record.deleteRecord(table_name, target_attr, where);
+  }
+  return result;
+}
+
+void API::insertRecord(std::string table_name, Tuple& tuple) { record.insertRecord(table_name, tuple); }
+
+bool API::createTable(std::string table_name, Attribute attribute, int primary, Index index) {
+  record.createTableFile(table_name);
+  catalog.createTable(table_name, attribute, primary, index);
+  return true;
+}
+
+bool API::dropTable(std::string table_name) {
+  record.dropTableFile(table_name);
+  catalog.dropTable(table_name);
+  return true;
+}
+
+bool API::createIndex(std::string table_name, std::string index_name, std::string attr_name) {
+  IndexManager index(table_name);
+  std::string file_path = "INDEX_FILE_" + attr_name + "_" + table_name;
+  int type = -1;
+  catalog.createIndex(table_name, attr_name, index_name);
+  Attribute attr = catalog.getAttribute(table_name);
+  for (int i = 0; i < attr.num; i++) {
+    if (attr.name[i] == attr_name) {
+      type = (int)attr.type[i];
+      break;
+    }
+  }
+  index.createIndex(file_path, type);
+  record.createIndex(index, table_name, attr_name);
+  return true;
+}
+
+bool API::dropIndex(std::string table_name, std::string index_name) {
+  IndexManager index(table_name);
+  std::string attr_name = catalog.IndextoAttr(table_name, index_name);
+  std::string file_path = "INDEX_FILE_" + attr_name + "_" + table_name;
+  int type = -1;
+  Attribute attr = catalog.getAttribute(table_name);
+  for (int i = 0; i < attr.num; i++) {
+    if (attr.name[i] == attr_name) {
+      type = (int)attr.type[i];
+      break;
+    }
+  }
+  index.dropIndex(file_path, type);
+  catalog.dropIndex(table_name, index_name);
+  file_path = "./database/index/" + file_path;
+  remove(file_path.c_str());
+  return true;
+}

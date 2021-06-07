@@ -119,6 +119,22 @@ void Interpreter::getQuery() {
   parser.parse(res);
 }
 
+void Interpreter::EXEC_SELECT(const SemanticValues &vs) {
+  string table_name = any_cast<string>(vs[0]);
+  vector<string> attr_name;
+  vector<string> target_name;
+  vector<Where> where_select;
+  Table output_table;
+  char op = 0;
+  for (int i = 1; i < vs.size(); i += 3) {
+    target_name.push_back(any_cast<string>(vs[i]));
+    where_select.push_back(any_cast<Where>(vs[i + 1]));
+    op = (any_cast<LOGIC>(vs[i + 2]) == AND);
+  }
+  API api;
+  output_table = api.selectRecord(table_name, target_name, where_select, op);
+}
+
 int main() {
   // (2) Make a parser
 

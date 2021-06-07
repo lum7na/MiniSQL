@@ -13,6 +13,7 @@ struct Data {
   int datai;
   float dataf;
   std::string datas;
+  bool operator<(const Data& rhs) const;
 };
 
 // Where存放一组判断语句
