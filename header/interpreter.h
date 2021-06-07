@@ -1,19 +1,21 @@
 #ifndef _INTERPRETER_H_
-#define	_INTERPRETER_H_ 1
+#define _INTERPRETER_H_ 1
 
+#include <cmath>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <cmath>
-#include <fstream>
-#include "catalog_manager.h"
+
 #include "api.h"
 #include "basic.h"
+#include "catalog_manager.h"
+#include "peglib.h"
 
-class Interpreter{
-public:
+class Interpreter {
+ public:
   Interpreter();
-    
+
   //功能：获取一行输入的信息，并将输入的格式规范化
   //异常：无异常
   void getQuery();
@@ -27,7 +29,7 @@ public:
   //如果表不存在，抛出table_not_exist异常
   //如果属性不存在，抛出attribute_not_exist异常
   //如果Where条件中的两个数据类型不匹配，抛出data_type_conflict异常
-  void EXEC_SELECT();
+  void EXEC_SELECT(const SemanticValues &vs);
   //输入：drop table t1;
   //输出：Success或者异常
   //功能：删除表t1
@@ -67,7 +69,7 @@ public:
   void EXEC_INSERT();
   //输入：delete from MyClass where id=1;
   //     delete * from MyClass;
-  //where中只存在一条信息
+  // where中只存在一条信息
   //输出：Success或者异常
   //功能：从Myclass中删除id=1的元组
   //异常：格式错误则抛出input_format_error异常
@@ -85,8 +87,8 @@ public:
   //输入：execfile 文件路径
   //功能：根据文件路径读取文件信息，并用于数据库的操作
   void EXEC_FILE();
-    
-private:
+
+ private:
   //字符串规范化函数
   void Normalize();
   //存放输入的字符串和规范化后的字符串
@@ -94,27 +96,28 @@ private:
   //输入：所对应的字符的开头位置，引用传出该字符的结尾位置
   //输出：这个位置所对应的单词的字符串
   //功能：从query中取字
-  std::string getWord(int pos,int &end_pos);
+  std::string getWord(int pos, int &end_pos);
   //输入：所需要转成小写的字符串，pos位置为所对应的单词的开始的位置
   //输出：将pos位置的单词改成小写后，输出更改后的完整字符串
   //功能：将字符串str中的pos位置开头的单词转化成小写，用于标准化
-  std::string getLower(std::string str,int pos);
+  std::string getLower(std::string str, int pos);
   //输入：所对应的字符的开头位置，引用传出该字符的结尾位置
   //输出：这个位置所对应的关系符号
   //功能：从query中取出关系符号
-  std::string getRelation(int pos,int &end_pos);
+  std::string getRelation(int pos, int &end_pos);
   //输入：所对应的字符的开头位置，引用传出该字符的结尾位置
   //输出：返回一个类型（-1～255）
-  int getType(int pos,int &end_pos);
+  int getType(int pos, int &end_pos);
   //输出：返回一个整数的位数
   int getBits(int num);
   //输出：返回一个浮点数的位数（保留小数点后4位）
   int getBits(float num);
+
+  parser parser;
 };
 
 template <class Type>
-Type stringToNum(const std::string& str)
-{
+Type stringToNum(const std::string &str) {
   std::istringstream iss(str);
   Type num;
   iss >> num;
