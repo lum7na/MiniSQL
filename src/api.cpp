@@ -96,7 +96,7 @@ Table API::unionTable(Table &table1, Table &table2, std::string target_attr, Whe
     }
   }
 
-  std::sort(result_tuple.begin(), result_tuple.end(), sortcmp);
+  std::sort(result_tuple.begin(), result_tuple.end());
   return result_table;
 }
 

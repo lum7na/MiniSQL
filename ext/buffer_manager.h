@@ -16,14 +16,14 @@
 class Page {
  public:
   // 构造函数和一些存取控制函数。可忽略。
-  Page();
+  Page(){};
   void initialize();
   void setFileName(std::string _file_name);
   std::string getFileName();
   void setBlockId(int _block_id);
   int getBlockId();
   void addUse();
-  int getUseCount();
+  int getUseCount() const;
   void setPin();
   void unPin();
   int getPinCount();
@@ -31,7 +31,7 @@ class Page {
   bool getDirty();
   char* getBuffer();
 
-  bool operator<(Page& r) { return getUseCount() < r.getUseCount(); }
+  bool operator<(const Page& r) const { return getUseCount() < r.getUseCount(); }
 
  private:
   char* buffer;           //每一页都是一个大小为PAGESIZE字节的数组
@@ -40,6 +40,10 @@ class Page {
   int use_count;          //记录被使用的次数
   int pin_count;          //记录被钉住的次数。被钉住的意思就是不可以被替换
   bool dirty;             // dirty记录页是否被修改
+};
+
+struct chash {
+  int operator()(const std::pair<std::string, int>& key) const { return std::hash<int>()(key.second) ^ std::hash<std::string>()(key.first); };
 };
 
 // BufferManager类。对外提供操作缓冲区的接口。
@@ -60,7 +64,7 @@ class BufferManager {
   // 如果对应页的pin_count_为0，则返回-1
   int unpinPage(int _page_id);
   // 将对应内存页写入对应文件的对应块。这里的返回值为int，但感觉其实没什么用，可以设为void
-  int flushPage(int _page_id, std::string _file_name, int _block_id);
+  void flushPage(int _page_id, std::string _file_name, int _block_id);
   // 获取对应文件的对应块在内存中的页号，没有找到返回-1
   int getPageId(std::string _file_name, int _block_id);
 
@@ -77,7 +81,7 @@ class BufferManager {
   typedef __gnu_pbds::priority_queue<Page, std::less<Page>, __gnu_pbds::binomial_heap_tag> bheap;
   bheap heap;
   bheap::point_iterator* heap_id;
-  __gnu_pbds::gp_hash_table<std::pair<std::string, int>, int> frame_id;
+  __gnu_pbds::gp_hash_table<std::pair<std::string, int>, int, chash> frame_id;
   std::queue<int> free_nodes;
 };
 

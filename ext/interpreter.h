@@ -11,6 +11,7 @@
 #include "basic.h"
 #include "catalog_manager.h"
 #include "peglib.h"
+using namespace peg;
 
 class Interpreter {
  public:
@@ -113,7 +114,7 @@ class Interpreter {
   //输出：返回一个浮点数的位数（保留小数点后4位）
   int getBits(float num);
 
-  parser parser;
+  peg::parser parser;
 };
 
 template <class Type>

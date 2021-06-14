@@ -54,6 +54,8 @@ class Tuple {
   bool isDeleted();
   void setDeleted();
   void showTuple();  //显示元组中的所有数据
+
+  bool operator<(const Tuple& rhs) const;
 };
 
 class Table {
