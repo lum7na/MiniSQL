@@ -1,4 +1,4 @@
-#include "header/index_manager.h"
+#include "index_manager.h"
 
 //构造函数
 //功能：根据输入的table_name创建索引文件
