@@ -41,8 +41,6 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple)
         throw table_not_exist();
     
     Attribute attr = catalog_manager.getAttribute(tmp_name);
-    std::cout << attr.name[0] << std::endl;
-
     std::vector<Data> data = tuple.getData();
     
     // 检查是否存在类型不匹配的情况
@@ -86,6 +84,7 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple)
 
     // 找到拥有足够大剩余空间的页并完成插入
     int block_num = getBlockNum(table_name);
+    block_num = (block_num == 0) ? 1 : block_num;
     char *p = buffer_manager.getPage(table_name, block_num - 1);
 
     int cnt = 0;
@@ -107,7 +106,7 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple)
 
     int page_id = buffer_manager.getPageId(table_name, block_offset);
     buffer_manager.modifyPage(page_id);
-    
+
     //更新索引
     IndexManager index_manager(tmp_name);
     for (int i = 0;i < attr.num;i++) {
@@ -364,6 +363,7 @@ int RecordManager::getBlockNum(std::string table_name)
     {
         p = buffer_manager.getPage(table_name, block_num++);
     } while (p[0] != '\0');
+    
     return block_num - 1;
 }
 
@@ -432,6 +432,8 @@ Tuple RecordManager::readTuple(const char *p, Attribute attr)
 
         std::string tmp_str(tmp);
 
+        data.type = attr.type[idx];
+
         switch (attr.type[idx])
         {
             case -1: { std::stringstream str_stream(tmp_str); str_stream >> data.datai; } break;
@@ -452,7 +454,7 @@ Tuple RecordManager::readTuple(const char *p, Attribute attr)
 int RecordManager::getTupleLength(char *p)
 {
     char tmp[10];
-    for (int idx = 0; idx != ' '; idx++)
+    for (int idx = 0; p[idx] != ' '; idx++)
         tmp[idx] = p[idx];
     return atoi(tmp);
 }
@@ -659,7 +661,7 @@ int main()
     Table test_tb = rm.selectRecord(table.getTitle(), "test_tb");
     test_tb.showTable();
 
-    cat.dropTable(table.getTitle());
+    // cat.dropTable(table.getTitle());
 
     return 0;
 }
