@@ -16,8 +16,8 @@
 class Page {
  public:
   // 构造函数和一些存取控制函数。可忽略。
-  Page(){};
-  void initialize();
+  Page();
+  ~Page();
   void setFileName(std::string _file_name);
   std::string getFileName();
   void setBlockId(int _block_id);
@@ -30,6 +30,7 @@ class Page {
   void setDirty(bool _dirty);
   bool getDirty();
   char* getBuffer();
+  void clear();
 
   bool operator<(const Page& r) const { return getUseCount() < r.getUseCount(); }
 

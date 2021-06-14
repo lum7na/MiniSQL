@@ -19,7 +19,7 @@ class Interpreter {
 
   //功能：获取一行输入的信息，并将输入的格式规范化
   //异常：无异常
-  void getQuery();
+  bool getQuery();
   //功能：对字符串进行初步解析，判断这个字符串的功能
   //异常：如果出现输入的关键字不存在，则抛出异常input_format_error
   void EXEC();
@@ -54,7 +54,7 @@ class Interpreter {
   //功能：在数据库中插入一个表的元信息
   //异常：格式错误则抛出input_format_error异常
   //如果表不存在，抛出table_not_exist异常
-  void EXEC_CREATE_TABLE();
+  void EXEC_CREATE_TABLE(const SemanticValues &vs);
   //输入：create index ID_index on t1 (id);
   //输出：Success或者异常
   //功能：在表中插入一个名字叫ID_index的索引，其对应属性为ID
@@ -67,7 +67,7 @@ class Interpreter {
   //输出：Success或者异常
   //功能：向T1内插入值的信息
   //异常：
-  void EXEC_INSERT();
+  void EXEC_INSERT(const SemanticValues &vs);
   //输入：delete from MyClass where id=1;
   //     delete * from MyClass;
   // where中只存在一条信息
