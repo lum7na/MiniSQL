@@ -2,9 +2,12 @@
 #define _INDEX_MANAGER_H_ 1
 
 #include <sstream>
+#include <vector>
 #include <string>
 #include <map>
+#include "const.h"
 #include "basic.h"
+#include "catalog_manager.h"
 #include "buffer_manager.h"
 #include "bplustree.h"
 
@@ -25,7 +28,7 @@ public:
   //异常：
   void dropIndex(std::string file_path, int type);
   //输入：Index文件名(路径)，索引的key(包含类型)
-  //输出：void
+  //输出：根据给出的data返回对应的value
   //功能：创建索引文件及B+树
   //异常：
   int findIndex(std::string file_path, Data data);
@@ -57,20 +60,11 @@ private:
   stringMap indexStringMap;
   floatMap indexFloatMap;
 
-  // struct keyTmp{
-  // 	int intTmp;
-  // 	float floatTmp;
-  // 	string stringTmp;
-  // };
-  // struct keyTmp kt;
-
   //计算B+树适合的degree
   int getDegree(int type);
 
   //计算不同类型Key的size
   int getKeySize(int type);
-
-  //void setKey(int type, std::string key);
 };
 
 #endif
