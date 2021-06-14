@@ -27,85 +27,94 @@ void RecordManager::dropTableFile(std::string table_name) {
 //异常：如果元组类型不匹配，抛出tuple_type_conflict异常。如果
 //主键冲突，抛出primary_key_conflict异常。如果unique属性冲突，
 //抛出unique_conflict异常。如果表不存在，抛出table_not_exist异常。
-void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
-  std::string tmp_name = table_name;
-  // 索引文件的路径，便于之后buffer_manager操作
-  table_name = ".\\database\\data\\" + table_name;
-
-  // 建立catalog_manager检查表名等冲突
-  CatalogManager catalog_manager;
-  if (!catalog_manager.hasTable(tmp_name)) throw table_not_exist();
-
-  Attribute attr = catalog_manager.getAttribute(tmp_name);
-  std::cout << attr.name[0] << std::endl;
-
-  std::vector<Data> data = tuple.getData();
-
-  // 检查是否存在类型不匹配的情况
-  for (int idx = 0; idx < attr.num; idx++) {
-    if (data[idx].type != attr.type[idx]) throw tuple_type_conflict();
-  }
-
-  Table table = selectRecord(tmp_name);
-  std::vector<Tuple> &tuples = table.getTuple();
-
-  // 检查是否存在主键冲突
-  for (int idx = 0; idx < attr.num; idx++) {
-    if (isConflict(tuples, data, attr.primary_key)) throw primary_key_conflict();
-  }
-
-  // 检查是否满足唯一性条件
-  for (int idx = 0; idx < attr.num; idx++) {
-    if (attr.unique[idx] && isConflict(tuples, data, idx)) throw unique_conflict();
-  }
-
-  int block_offset;
-
-  // 计算待插入的tuple的长度；
-  int tuple_len = attr.num + 7;
-  for (int idx = 0; idx < attr.num; idx++) {
-    Data current_data = data[idx];
-    switch (current_data.type) {
-      case -1:
-        tuple_len += getDataLength(current_data.datai);
-        break;
-      case 0:
-        tuple_len += getDataLength(current_data.dataf);
-        break;
-      default:
-        tuple_len += getDataLength(current_data.datas);
-        break;
+void RecordManager::insertRecord(std::string table_name, Tuple &tuple)
+{
+    std::string tmp_name = table_name;
+    // 索引文件的路径，便于之后buffer_manager操作
+    table_name = ".\\database\\data\\" + table_name;
+    
+    // 建立catalog_manager检查表名等冲突
+    CatalogManager catalog_manager;
+    if (!catalog_manager.hasTable(tmp_name))
+        throw table_not_exist();
+    
+    Attribute attr = catalog_manager.getAttribute(tmp_name);
+    std::vector<Data> data = tuple.getData();
+    
+    // 检查是否存在类型不匹配的情况
+    for (int idx = 0; idx < attr.num; idx++)
+    {
+        if (data[idx].type != attr.type[idx])
+            throw tuple_type_conflict();
     }
-  }
 
-  // 找到拥有足够大剩余空间的页并完成插入
-  int block_num = getBlockNum(table_name);
-  char *p = buffer_manager.getPage(table_name, block_num - 1);
+    Table table = selectRecord(tmp_name);
+    std::vector<Tuple>& tuples = table.getTuple();
 
-  int cnt = 0;
-  while (p[cnt] != '\0' && cnt < PAGESIZE) cnt++;
+    // 检查是否存在主键冲突
+    for (int idx = 0; idx < attr.num; idx++)
+    {
+        if (isConflict(tuples, data, attr.primary_key))
+            throw primary_key_conflict();
+    }
 
-  if (cnt + tuple_len < PAGESIZE) {
-    // 空间足够大，则我们直接插入
-    block_offset = block_num - 1;
-    insertRecord1(p, cnt, tuple_len, data);
-  } else {
-    block_offset = block_num;
-    char *p = buffer_manager.getPage(table_name, block_offset);
-    insertRecord1(p, 0, tuple_len, data);
-  }
+    // 检查是否满足唯一性条件
+    for (int idx = 0; idx < attr.num; idx++)
+    {
+        if (attr.unique[idx] && isConflict(tuples, data, idx))
+            throw unique_conflict();
+    }
 
-  int page_id = buffer_manager.getPageId(table_name, block_offset);
-  buffer_manager.modifyPage(page_id);
+    int block_offset;
 
-  //更新索引
-  IndexManager index_manager(tmp_name);
-  for (int i = 0; i < attr.num; i++) {
-    if (attr.has_index[i] == true) {
-      std::string attr_name = attr.name[i];
-      std::string file_path = "INDEX_FILE_" + attr_name + "_" + tmp_name;
-      std::vector<Data> d = tuple.getData();
-      index_manager.insertIndex(file_path, d[i], block_offset);
+    // 计算待插入的tuple的长度；
+    int tuple_len = attr.num + 7;
+    for (int idx = 0; idx < attr.num; idx++)
+    {
+        Data current_data = data[idx];
+        switch (current_data.type)
+        {
+            case -1: tuple_len += getDataLength(current_data.datai); break;
+            case  0: tuple_len += getDataLength(current_data.dataf); break;
+            default: tuple_len += getDataLength(current_data.datas); break;
+        }
+    }
+
+    // 找到拥有足够大剩余空间的页并完成插入
+    int block_num = getBlockNum(table_name);
+    block_num = (block_num == 0) ? 1 : block_num;
+    char *p = buffer_manager.getPage(table_name, block_num - 1);
+
+    int cnt = 0;
+    while (p[cnt] != '\0' && cnt < PAGESIZE)
+        cnt++;
+
+    if (cnt + tuple_len < PAGESIZE)
+    {
+        // 空间足够大，则我们直接插入
+        block_offset = block_num - 1;
+        insertRecord1(p, cnt, tuple_len, data);
+    } 
+    else
+    {
+        block_offset = block_num;
+        char *p = buffer_manager.getPage(table_name, block_offset);
+        insertRecord1(p, 0, tuple_len, data);
+    }
+
+    int page_id = buffer_manager.getPageId(table_name, block_offset);
+    buffer_manager.modifyPage(page_id);
+
+    //更新索引
+    IndexManager index_manager(tmp_name);
+    for (int i = 0;i < attr.num;i++) {
+        if (attr.has_index[i] == true) {
+            std::string attr_name = attr.name[i];
+            std::string file_path = "INDEX_FILE_" + attr_name + "_" + tmp_name;
+            std::vector<Data> d = tuple.getData();
+            index_manager.insertIndex(file_path , d[i] , block_offset);
+        }
+
     }
   }
 }
@@ -309,13 +318,16 @@ void RecordManager::createIndex(IndexManager &index_manager, std::string table_n
 }
 
 //获取文件大小
-int RecordManager::getBlockNum(std::string table_name) {
-  char *p;
-  int block_num = 0;
-  do {
-    p = buffer_manager.getPage(table_name, block_num++);
-  } while (p[0] != '\0');
-  return block_num - 1;
+int RecordManager::getBlockNum(std::string table_name)
+{
+    char *p;
+    int block_num = 0;
+    do
+    {
+        p = buffer_manager.getPage(table_name, block_num++);
+    } while (p[0] != '\0');
+    
+    return block_num - 1;
 }
 
 // insertRecord的辅助函数
@@ -363,36 +375,36 @@ char *RecordManager::deleteRecord1(char *p) {
 }
 
 //从内存中读取一个tuple
-Tuple RecordManager::readTuple(const char *p, Attribute attr) {
-  Tuple ret;
+Tuple RecordManager::readTuple(const char *p, Attribute attr)
+{
+    Tuple ret;
 
-  p = p + 5;  // 将长度项略过
+    p = p + 5;              // 将长度项略过
 
-  for (int idx = 0; idx < attr.num; idx++) {
-    Data data;
-    char tmp[100];
-    int j;
+    for (int idx = 0; idx < attr.num; idx++)
+    {
+        Data data;
+        char tmp[100];
+        int j;
+        
+        for (j = 0; *p != ' '; j++, p++)
+            tmp[j] = *p;
 
-    for (j = 0; *p != ' '; j++, p++) tmp[j] = *p;
+        tmp[j] = '\0';
+        p++;
 
-    tmp[j] = '\0';
-    p++;
+        std::string tmp_str(tmp);
 
-    std::string tmp_str(tmp);
+        data.type = attr.type[idx];
 
-    switch (attr.type[idx]) {
-      case -1: {
-        std::stringstream str_stream(tmp_str);
-        str_stream >> data.datai;
-      } break;
-      case 0: {
-        std::stringstream str_stream(tmp_str);
-        str_stream >> data.dataf;
-      } break;
-      default: {
-        std::stringstream str_stream(tmp_str);
-        str_stream >> data.datas;
-      } break;
+        switch (attr.type[idx])
+        {
+            case -1: { std::stringstream str_stream(tmp_str); str_stream >> data.datai; } break;
+            case  0: { std::stringstream str_stream(tmp_str); str_stream >> data.dataf; } break;
+            default: { std::stringstream str_stream(tmp_str); str_stream >> data.datas; } break;
+        }
+
+        ret.addData(data);
     }
 
     ret.addData(data);
@@ -404,10 +416,12 @@ Tuple RecordManager::readTuple(const char *p, Attribute attr) {
 }
 
 //获取一个tuple的长度
-int RecordManager::getTupleLength(char *p) {
-  char tmp[10];
-  for (int idx = 0; idx != ' '; idx++) tmp[idx] = p[idx];
-  return atoi(tmp);
+int RecordManager::getTupleLength(char *p)
+{
+    char tmp[10];
+    for (int idx = 0; p[idx] != ' '; idx++)
+        tmp[idx] = p[idx];
+    return atoi(tmp);
 }
 
 //判断插入的记录是否和其他记录冲突
@@ -612,7 +626,7 @@ int main() {
   Table test_tb = rm.selectRecord(table.getTitle(), "test_tb");
   test_tb.showTable();
 
-  cat.dropTable(table.getTitle());
+    // cat.dropTable(table.getTitle());
 
   return 0;
 }
