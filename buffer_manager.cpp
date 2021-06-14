@@ -66,6 +66,10 @@ char* BufferManager::getPage(std::string _file_name, int _block_id) {
   int id = getPageId(_file_name, _block_id);
   if (id == -1) {
     id = getEmptyPageId();
+    frames[id].setBlockId(_block_id);
+    frames[id].setFileName(_file_name);
+    frames[id].setDirty(false);
+    frames[id].setPin(0);
     loadDiskBlock(id, _file_name, _block_id);
   }
   addUse(id);
