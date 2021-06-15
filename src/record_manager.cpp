@@ -6,7 +6,7 @@
 //异常：无异常处理（由catalog manager处理）
 void RecordManager::createTableFile(std::string table_name) {
   // 此函数仅创建文件，catalog中的记录需要另外调用catalog manager完成
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
   FILE *fp = fopen(table_name.c_str(), "w");
   fclose(fp);
 }
@@ -17,7 +17,7 @@ void RecordManager::createTableFile(std::string table_name) {
 //异常：无异常处理（由catalog manager处理）
 void RecordManager::dropTableFile(std::string table_name) {
   // 此函数仅移除文件，catalog中的记录需要另外调用catalog manager完成
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
   remove(table_name.c_str());
 }
 
@@ -30,15 +30,13 @@ void RecordManager::dropTableFile(std::string table_name) {
 void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
   std::string tmp_name = table_name;
   // 索引文件的路径，便于之后buffer_manager操作
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
 
   // 建立catalog_manager检查表名等冲突
   CatalogManager catalog_manager;
   if (!catalog_manager.hasTable(tmp_name)) throw table_not_exist();
 
   Attribute attr = catalog_manager.getAttribute(tmp_name);
-  std::cout << attr.name[0] << std::endl;
-
   std::vector<Data> data = tuple.getData();
 
   // 检查是否存在类型不匹配的情况
@@ -80,6 +78,7 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
 
   // 找到拥有足够大剩余空间的页并完成插入
   int block_num = getBlockNum(table_name);
+  block_num = (block_num == 0) ? 1 : block_num;
   char *p = buffer_manager.getPage(table_name, block_num - 1);
 
   int cnt = 0;
@@ -118,7 +117,7 @@ int RecordManager::deleteRecord(std::string table_name) {
   int ret = 0;  // ret储存删除的记录数
 
   std::string tmp_name = table_name;
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
 
   // 检查表格是否存在
   CatalogManager catalog_manager;
@@ -164,7 +163,7 @@ int RecordManager::deleteRecord(std::string table_name, std::string target_attr,
   int ret = 0;  // ret储存删除的记录数
 
   std::string tmp_name = table_name;
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
 
   // 检查表格是否存在
   CatalogManager catalog_manager;
@@ -201,7 +200,7 @@ int RecordManager::deleteRecord(std::string table_name, std::string target_attr,
 //异常：如果表不存在，抛出table_not_exist异常
 Table RecordManager::selectRecord(std::string table_name, std::string result_table_name) {
   std::string tmp_name = table_name;
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
 
   // 检查表格是否存在
   CatalogManager catalog_manager;
@@ -214,12 +213,9 @@ Table RecordManager::selectRecord(std::string table_name, std::string result_tab
   for (int idx = 0; idx < block_num; idx++) {
     char *p = buffer_manager.getPage(table_name, idx);
     char *original_p = p;
-
     while (*p != '\0' && p < original_p + PAGESIZE) {
       Tuple tuple = readTuple(p, attr);
-
       if (!tuple.isDeleted()) ret.getTuple().push_back(tuple);
-
       int tuple_len = getTupleLength(p);
       p = p + tuple_len;
     }
@@ -235,7 +231,7 @@ Table RecordManager::selectRecord(std::string table_name, std::string result_tab
 //如果Where条件中的两个数据类型不匹配，抛出data_type_conflict异常。
 Table RecordManager::selectRecord(std::string table_name, std::string target_attr, Where where, std::string result_table_name) {
   std::string tmp_name = table_name;
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
 
   // 检查表格是否存在
   CatalogManager catalog_manager;
@@ -274,7 +270,7 @@ Table RecordManager::selectRecord(std::string table_name, std::string target_att
 //异常：如果表不存在，抛出table_not_exist异常。如果属性不存在，抛出attribute_not_exist异常。
 void RecordManager::createIndex(IndexManager &index_manager, std::string table_name, std::string target_attr) {
   std::string tmp_name = table_name;
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
 
   CatalogManager catalog_manager;
   if (!catalog_manager.hasTable(tmp_name)) throw table_not_exist();
@@ -315,6 +311,7 @@ int RecordManager::getBlockNum(std::string table_name) {
   do {
     p = buffer_manager.getPage(table_name, block_num++);
   } while (p[0] != '\0');
+
   return block_num - 1;
 }
 
@@ -371,6 +368,7 @@ Tuple RecordManager::readTuple(const char *p, Attribute attr) {
   for (int idx = 0; idx < attr.num; idx++) {
     Data data;
     char tmp[100];
+    memset(tmp, 0, sizeof(tmp));
     int j;
 
     for (j = 0; *p != ' '; j++, p++) tmp[j] = *p;
@@ -379,6 +377,8 @@ Tuple RecordManager::readTuple(const char *p, Attribute attr) {
     p++;
 
     std::string tmp_str(tmp);
+
+    data.type = attr.type[idx];
 
     switch (attr.type[idx]) {
       case -1: {
@@ -406,7 +406,8 @@ Tuple RecordManager::readTuple(const char *p, Attribute attr) {
 //获取一个tuple的长度
 int RecordManager::getTupleLength(char *p) {
   char tmp[10];
-  for (int idx = 0; idx != ' '; idx++) tmp[idx] = p[idx];
+  memset(tmp, 0, sizeof(tmp));
+  for (int idx = 0; p[idx] != ' '; idx++) tmp[idx] = p[idx];
   return atoi(tmp);
 }
 
@@ -487,7 +488,7 @@ void RecordManager::searchWithIndex(std::string table_name, std::string target_a
 //在块中进行条件删除
 int RecordManager::conditionDeleteInBlock(std::string table_name, int block_id, Attribute attr, int index, Where where) {
   int ret = 0;  // 返回删除的记录条数
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
   char *p = buffer_manager.getPage(table_name, block_id);
   int page_id = buffer_manager.getPageId(table_name, block_id);
   char *original_p = p;
@@ -533,7 +534,7 @@ int RecordManager::conditionDeleteInBlock(std::string table_name, int block_id, 
 
 //在块中进行条件查询
 void RecordManager::conditionSelectInBlock(std::string table_name, int block_id, Attribute attr, int index, Where where, std::vector<Tuple> &v) {
-  table_name = ".\\database\\data\\" + table_name;
+  table_name = "./database/data/" + table_name;
   char *p = buffer_manager.getPage(table_name, block_id);
   char *original_p = p;
 
@@ -612,7 +613,7 @@ int main() {
   Table test_tb = rm.selectRecord(table.getTitle(), "test_tb");
   test_tb.showTable();
 
-  cat.dropTable(table.getTitle());
+  // cat.dropTable(table.getTitle());
 
   return 0;
 }

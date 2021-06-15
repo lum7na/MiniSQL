@@ -20,9 +20,6 @@ class Interpreter {
   //功能：获取一行输入的信息，并将输入的格式规范化
   //异常：无异常
   bool getQuery();
-  //功能：对字符串进行初步解析，判断这个字符串的功能
-  //异常：如果出现输入的关键字不存在，则抛出异常input_format_error
-  void EXEC();
   //输入：select last_name,first_name,birth,state from president where t1<10 and t2>20 ;
   //输出：Success或者异常
   //功能：进行选择操作，支持单表多约束
@@ -62,7 +59,7 @@ class Interpreter {
   //如果表不存在，抛出table_not_exist异常
   //如果对应属性不存在，抛出attribute_not_exist异常
   //如果对应属性已经有了索引，抛出index_exist异常
-  void EXEC_CREATE_INDEX();
+  void EXEC_CREATE_INDEX(const SemanticValues &vs);
   //输入：insert into T1 values('WuZhaoHui',0001,99.99);
   //输出：Success或者异常
   //功能：向T1内插入值的信息

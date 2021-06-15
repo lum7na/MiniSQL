@@ -1,279 +1,338 @@
-//
-//  index_manager.cc
-//  index_manager
-//
-//  Created by Xw on 2017/6/5.
-//  Copyright © 2017年 Xw. All rights reserved.
-//
-
 #include "index_manager.h"
-#include "const.h"
-#include "basic.h"
-#include "buffer_manager.h"
-#include "bplustree.h"
-#include "catalog_manager.h"
-#include <string>
-#include <vector>
-#include <map>
 
-IndexManager::IndexManager(std:: string table_name)
+//构造函数
+//功能：根据输入的table_name创建索引文件
+IndexManager::IndexManager(std::string table_name)
 {
-    CatalogManager catalog;
-    Attribute attr = catalog.getAttribute(table_name);
-    
-    for (int i = 0; i < attr.num; i++)
-        if (attr.has_index[i])
-            createIndex("INDEX_FILE_" + attr.name[i] + "_" + table_name, attr.type[i]);
+    CatalogManager catalog_manager;
+    Attribute attr = catalog_manager.getAttribute(table_name);
+
+    for (int idx = 0; idx < attr.num; idx++)
+        if (attr.has_index[idx])
+        {
+            std::string index_path = "INDEX_FILE_" + attr.name[idx] + "_" + table_name;
+            createIndex(index_path, attr.type[idx]);
+        }
 }
 
+//析构函数
 IndexManager::~IndexManager()
 {
-    for (intMap::iterator itInt = indexIntMap.begin(); itInt != indexIntMap.end(); itInt++) {
-        if (itInt->second) {
-            itInt->second->writtenbackToDiskAll();
-            delete itInt->second;
+    for (intMap::iterator iter = indexIntMap.begin(); iter != indexIntMap.end(); iter++)
+        if (iter->second)
+        {
+            iter->second->writtenbackToDiskAll();
+            delete iter->second;
         }
-    }
-    for (stringMap::iterator itString = indexStringMap.begin(); itString != indexStringMap.end(); itString++) {
-        if (itString->second) {
-            itString->second->writtenbackToDiskAll();
-            delete itString->second;
+
+    for (floatMap::iterator iter = indexFloatMap.begin(); iter != indexFloatMap.end(); iter++)
+        if (iter->second)
+        {
+            iter->second->writtenbackToDiskAll();
+            delete iter->second;
         }
-    }
-    for (floatMap::iterator itFloat = indexFloatMap.begin(); itFloat != indexFloatMap.end(); itFloat++) {
-        if(itFloat->second) {
-            itFloat->second->writtenbackToDiskAll();
-            delete itFloat->second;
+
+    for (stringMap::iterator iter = indexStringMap.begin(); iter != indexStringMap.end(); iter++)
+        if (iter->second)
+        {
+            iter->second->writtenbackToDiskAll();
+            delete iter->second;
         }
-    }
 }
 
+//输入：Index文件名(路径)，索引的key的类型
+//输出：void
+//功能：创建索引文件及B+树
+//异常：
 void IndexManager::createIndex(std::string file_path, int type)
 {
-    int key_size = getKeySize(type); //获取key的size
-    int degree = getDegree(type); //获取需要的degree
+    if (type < -1)
+        std::cout << "Invalid data type!" << std::endl;
 
-	//根据数据类型不同，用对应的方法建立映射关系
-	//并且先初始化一颗B+树
-    if (type == TYPE_INT) {
-        BPlusTree<int> *tree = new BPlusTree<int>(file_path, key_size, degree);
-        indexIntMap.insert(intMap::value_type(file_path, tree));
-    } else if(type == TYPE_FLOAT) {
-        BPlusTree<float> *tree = new BPlusTree<float>(file_path, key_size, degree);
-        indexFloatMap.insert(floatMap::value_type(file_path, tree));
-    } else {
-        BPlusTree<std::string> *tree = new BPlusTree<std::string>(file_path, key_size, degree);
-        indexStringMap.insert(stringMap::value_type(file_path, tree));
+    switch (type)
+    {
+        case -1: 
+        {
+            BPlusTree<int> *bplustree = new BPlusTree<int>(file_path, getKeySize(type), getDegree(type));
+            indexIntMap.insert(intMap::value_type(file_path, bplustree));
+            break;
+        }
+        case  0: 
+        {
+            BPlusTree<float> *bplustree = new BPlusTree<float>(file_path, getKeySize(type), getDegree(type));
+            indexFloatMap.insert(floatMap::value_type(file_path, bplustree));
+            break;
+        }
+        default: 
+        {
+            BPlusTree<std::string> *bplustree = new BPlusTree<std::string>(file_path, getKeySize(type), getDegree(type));
+            indexStringMap.insert(stringMap::value_type(file_path, bplustree));
+            break;
+        }
     }
-
-	return;
 }
 
+//输入：Index文件名(路径)，索引的key的类型
+//输出：void
+//功能：删除索引、B+树及文件
+//异常：
 void IndexManager::dropIndex(std::string file_path, int type)
 {
-	//根据不同数据类型采用对应的处理方式
-    if (type == TYPE_INT) {
-		//查找路径对应的键值对
-        intMap::iterator itInt = indexIntMap.find(file_path);
-        if (itInt == indexIntMap.end()) { //未找到
-            // cout << "Error:in drop index, no index " << file_path <<" exits" << endl;
-			return;
-        } else {
-            //删除对应的B+树
-            delete itInt->second;
-			//清空该键值对
-            indexIntMap.erase(itInt);
+    if (type < -1)
+        std::cout << "Invalid data type!" << std::endl;
+
+    switch (type)
+    {
+        case -1: 
+        {
+            intMap::iterator iter = indexIntMap.find(file_path);
+            if (iter == indexIntMap.end())
+            {
+                std::cout << "Fail to find the index to be dropped." << std::endl;
+            } 
+            else
+            {
+                delete iter->second;
+                indexIntMap.erase(iter);
+            }
         }
-    } else if (type == TYPE_FLOAT) { //同上
-        floatMap::iterator itFloat = indexFloatMap.find(file_path);
-        if (itFloat == indexFloatMap.end()) {
-            // cout << "Error:in drop index, no index " << file_path <<" exits" << endl;
-            return;
-        } else {
-            delete itFloat->second;
-            indexFloatMap.erase(itFloat);
+        case  0:
+        {
+            floatMap::iterator iter = indexFloatMap.find(file_path);
+            if (iter == indexFloatMap.end())
+            {
+                std::cout << "Fail to find the index to be dropped." << std::endl;
+            } 
+            else
+            {
+                delete iter->second;
+                indexFloatMap.erase(iter);
+            }
         }
-    } else {
-        stringMap::iterator itString = indexStringMap.find(file_path);
-        if (itString == indexStringMap.end()) { //同上
-            // cout << "Error:in drop index, no index " << file_path <<" exits" << endl;
-            return;
-        } else {
-            delete itString->second;
-            indexStringMap.erase(itString);
+        default:
+        {
+            stringMap::iterator iter = indexStringMap.find(file_path);
+            if (iter == indexStringMap.end())
+            {
+                std::cout << "Fail to find the index to be dropped." << std::endl;
+            } 
+            else
+            {
+                delete iter->second;
+                indexStringMap.erase(iter);
+            }
         }
     }
-
-	return;
 }
 
+//输入：Index文件名(路径)，索引的key(包含类型)
+//输出：根据给出的data返回对应的value
+//功能：创建索引文件及B+树
+//异常：
 int IndexManager::findIndex(std::string file_path, Data data)
 {
-    //setKey(type, key);
+    int ret;
 
-    if (data.type == TYPE_INT) {
-        intMap::iterator itInt = indexIntMap.find(file_path);
-        if (itInt == indexIntMap.end()) { //未找到
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return -1;
-        } else
-            //找到则返回对应的键值
-            return itInt->second->searchVal(data.datai);
-    } else if(data.type == TYPE_FLOAT) {
-        floatMap::iterator itFloat = indexFloatMap.find(file_path);
-        if (itFloat == indexFloatMap.end()) { //同上
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return -1;
-        } else
-            return itFloat->second->searchVal(data.dataf);
-    } else {
-        stringMap::iterator itString = indexStringMap.find(file_path);
-        if (itString == indexStringMap.end()) { //同上
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return -1;
-        } else
-            return itString->second->searchVal(data.datas);
+    if (data.type < -1)
+        std::cout << "Invalid data type!" << std::endl;
+
+    switch (data.type)
+    {
+        case -1: 
+        {
+            intMap::iterator iter = indexIntMap.find(file_path);
+            if (iter == indexIntMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                ret = iter->second->searchVal(data.datai);
+        }
+        case  0:
+        {
+            floatMap::iterator iter = indexFloatMap.find(file_path);
+            if (iter == indexFloatMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                ret = iter->second->searchVal(data.dataf);
+        }
+        default:
+        {
+            stringMap::iterator iter = indexStringMap.find(file_path);
+            if (iter == indexStringMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                ret = iter->second->searchVal(data.datas);
+        }
     }
+
+    return ret;
 }
 
-void IndexManager::insertIndex(std::string file_path, Data data, int block_id)
+//输入：Index文件名(路径)，索引的key(包含类型)，block_id
+//输出：void
+//功能：在指定索引中插入一个key
+//异常：
+void IndexManager::insertIndex(std::string file_path, Data data , int block_id)
 {
-    //setKey(type, key);
+    if (data.type < -1)
+        std::cout << "Invalid data type!" << std::endl;
 
-    if (data.type == TYPE_INT) {
-        intMap::iterator itInt = indexIntMap.find(file_path);
-        if (itInt == indexIntMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return;
-        } else
-            itInt->second->insertKey(data.datai, block_id);
-    } else if (data.type == TYPE_FLOAT) {
-        floatMap::iterator itFloat = indexFloatMap.find(file_path);
-        if (itFloat == indexFloatMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-			return;
-        } else
-            itFloat->second->insertKey(data.dataf, block_id);
-    } else {
-        stringMap::iterator itString = indexStringMap.find(file_path);
-        if (itString == indexStringMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return;
-        } else
-            itString->second->insertKey(data.datas, block_id);
+    switch (data.type)
+    {
+        case -1: 
+        {
+            intMap::iterator iter = indexIntMap.find(file_path);
+            if (iter == indexIntMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->insertKey(data.datai, block_id);
+        }
+        case  0:
+        {
+            floatMap::iterator iter = indexFloatMap.find(file_path);
+            if (iter == indexFloatMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->insertKey(data.dataf, block_id);
+        }
+        default:
+        {
+            stringMap::iterator iter = indexStringMap.find(file_path);
+            if (iter == indexStringMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->insertKey(data.datas, block_id);
+        }
     }
-
-    return;
 }
 
+//输入：Index文件名(路径)，索引的key(包含类型)
+//输出：void
+//功能：在索引中删除相应的Key
+//异常：
 void IndexManager::deleteIndexByKey(std::string file_path, Data data)
 {
-    //setKey(type, key);
+    if (data.type < -1)
+        std::cout << "Invalid data type!" << std::endl;
 
-    if (data.type == TYPE_INT) {
-        intMap::iterator itInt = indexIntMap.find(file_path);
-        if (itInt == indexIntMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return;
-        } else
-            itInt->second->deleteKey(data.datai);
-    } else if (data.type == TYPE_FLOAT) {
-        floatMap::iterator itFloat = indexFloatMap.find(file_path);
-        if (itFloat == indexFloatMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return;
-        } else
-            itFloat->second->deleteKey(data.dataf);
-    } else {
-        stringMap::iterator itString = indexStringMap.find(file_path);
-        if(itString == indexStringMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return;
+    switch (data.type)
+    {
+        case -1: 
+        {
+            intMap::iterator iter = indexIntMap.find(file_path);
+            if (iter == indexIntMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->deleteKey(data.datai);
         }
-        else
-			itString->second->deleteKey(data.datas);
+        case  0:
+        {
+            floatMap::iterator iter = indexFloatMap.find(file_path);
+            if (iter == indexFloatMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->deleteKey(data.dataf);
+        }
+        default:
+        {
+            stringMap::iterator iter = indexStringMap.find(file_path);
+            if (iter == indexStringMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->deleteKey(data.datas);
+        }
     }
 }
 
-int IndexManager::getDegree(int type)
-{
-    int degree = (PAGESIZE - sizeof(int)) / (getKeySize(type) + sizeof(int));
-    if (degree % 2 == 0)
-		degree -= 1;
-    return degree;
-}
-
-int IndexManager::getKeySize(int type)
-{
-    if (type == TYPE_FLOAT)
-        return sizeof(float);
-    else if (type == TYPE_INT)
-        return sizeof(int);
-    else if (type > 0)
-        return type;
-    else {
-        // cout << "ERROR: in getKeySize: invalid type" << endl;
-        return -100;
-    }
-}
-
+//输入：Index文件名(路径)，索引的key1(包含类型)，索引的key2(包含类型)，返回的vector引用
+//输出：void
+//功能：范围查找，返回一定范围内的value
+//异常：
 void IndexManager::searchRange(std::string file_path, Data data1, Data data2, std::vector<int>& vals)
 {
+    if (data1.type != data2.type)
+        throw data_type_conflict();
+
+    // flag有三种类型，0表示在data1与data2之间搜索，1表示从-INF搜索到data2，2表示从data1搜索到INF
     int flag = 0;
-    //检测数据类型是否匹配
-    if (data1.type == -2) {
+    if (data1.type == -2)
         flag = 1;
-    } else if (data2.type == -2) {
-        flag = 2;
-    }
-    /*
-    else if (data1.type != data2.type) {
-        // cout << "ERROR: in searchRange: Wrong data type!" << endl;
-        return;
-    }
-     */
-    
-    if (data1.type == TYPE_INT) {
-        intMap::iterator itInt = indexIntMap.find(file_path);
-        if (itInt == indexIntMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return;
-        } else
-            itInt->second->searchRange(data1.datai, data2.datai, vals, flag);
-    } else if (data1.type == TYPE_FLOAT) {
-        floatMap::iterator itFloat = indexFloatMap.find(file_path);
-        if (itFloat == indexFloatMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return;
-        } else
-            itFloat->second->searchRange(data1.dataf, data2.dataf, vals, flag);
-    } else {
-        stringMap::iterator itString = indexStringMap.find(file_path);
-        if(itString == indexStringMap.end()) {
-            // cout << "Error:in search index, no index " << file_path <<" exits" << endl;
-            return;
+    else if (data2.type == -2)
+        flag = 1;
+
+    switch (data1.type)
+    {
+        case -1: 
+        {
+            intMap::iterator iter = indexIntMap.find(file_path);
+            if (iter == indexIntMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->searchRange(data1.datai, data2.datai, vals, flag);
         }
-        else
-            itString->second->searchRange(data1.datas, data2.datas, vals, flag);
+        case  0:
+        {
+            floatMap::iterator iter = indexFloatMap.find(file_path);
+            if (iter == indexFloatMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->searchRange(data1.dataf, data2.dataf, vals, flag);
+        }
+        default:
+        {
+            stringMap::iterator iter = indexStringMap.find(file_path);
+            if (iter == indexStringMap.end())
+                std::cout << "Fail to find the index." << std::endl;
+            else
+                iter->second->searchRange(data1.datas, data2.datas, vals, flag);
+        }
     }
 }
 
-/*
-void IndexManager::setKey(int type, std::tring key)
+//计算B+树适合的degree
+int IndexManager::getDegree(int type)
 {
-    stringstream ss;
-    ss << key;
-    if (type == this->TYPE_INT)
-        ss >> this->kt.intTmp;
-    else if (type == this->TYPE_FLOAT)
-        ss >> this->kt.floatTmp;
-    else if (type > 0)
-        ss >> this->kt.stringTmp;
+    // 计算B+树一个节点能够容纳多少数据
+    int ret = (PAGESIZE - sizeof(int)) / (getKeySize(type) + sizeof(int));
 
-    else
-        cout << "Error: in getKey: invalid type" << endl;
+    if (ret % 2 == 0)
+        ret--;
 
-
-	return;
+    return ret;
 }
-*/
+
+//计算不同类型Key的size
+int IndexManager::getKeySize(int type)
+{
+    int ret;
+
+    switch (type)
+    {
+        case -1: ret = sizeof(int); break;
+        case  0: ret = sizeof(float); break;
+        default: ret = type; break;
+    }
+
+    // 如果输入的type小于-1，则输入不合法
+    if (ret < 0)
+        std::cout << "Invalid data type!" << std::endl;
+
+    return ret;
+}
+
+#ifdef __TEST_INDM__
+
+#include <iostream>
+using namespace std;
+
+BufferManager buffer_manager;
+
+int main()
+{
+    string table_name = "test1";
+
+    IndexManager index_manager(table_name);
+
+    return 0;
+}
+
+#endif

@@ -20,13 +20,15 @@ QUIT <- 'quit;'
 EXEC <- 'execfile' any_name ';'
 any_type <- 'int' / 'float' / 'char' '(' any_int ')'
 any_name <- < [a-z0-9]+ >
-any_cond <- any_op any_val
-any_logic <- 'and' | 'or'
-any_op <- '<' | '<=' | '>' | '>=' | '!=' | '='
+any_cond <- any_op ' ' any_val
+any_logic <- w_and / w_or
+any_op <- [<=>]*
 any_val <- any_string / any_float / any_int
 any_string <- < '\'' [a-z0-9A-Z-_]+ '\'' > 
 any_int <-  < '-'?[0-9]+ >
 any_float <-  < '-'?[0-9]*'.'[0-9]+ >
+w_and <- 'and'
+w_or <- 'or'
 %whitespace <- [ \t]*
   )");
   assert(static_cast<bool>(parser) == true);
@@ -57,19 +59,19 @@ any_float <-  < '-'?[0-9]*'.'[0-9]+ >
     return res;
   };
   parser["any_op"] = [](const SemanticValues &vs) {
-    switch (vs.choice()) {
-      case 0:
-        return LESS;
-      case 1:
-        return LESS_OR_EQUAL;
-      case 2:
-        return GREATER;
-      case 3:
-        return GREATER_OR_EQUAL;
-      case 4:
-        return NOT_EQUAL;
-      case 5:
-        return EQUAL;
+    string op = vs.token_to_string();
+    if (op == "<") {
+      return LESS;
+    } else if (op == "<=") {
+      return LESS_OR_EQUAL;
+    } else if (op == ">") {
+      return GREATER;
+    } else if (op == ">=") {
+      return GREATER_OR_EQUAL;
+    } else if (op == "!=") {
+      return NOT_EQUAL;
+    } else if (op == "=") {
+      return EQUAL;
     }
     assert(0);
   };
@@ -112,6 +114,7 @@ any_float <-  < '-'?[0-9]*'.'[0-9]+ >
   parser["SELECT"] = [this](const SemanticValues &vs) { EXEC_SELECT(vs); };
   parser["CREATE"] = [this](const SemanticValues &vs) { EXEC_CREATE_TABLE(vs); };
   parser["INSERT"] = [this](const SemanticValues &vs) { EXEC_INSERT(vs); };
+  parser["INDEX"] = [this](const SemanticValues &vs) { EXEC_CREATE_INDEX(vs); };
   parser.enable_packrat_parsing();  // Enable packrat parsing.
 }
 
@@ -124,17 +127,14 @@ bool Interpreter::getQuery() {
   while (res.back() != ';') {
     string res_t;
     getline(cin, res_t);
-
     res += res_t;
   }
-  cerr << res << endl;
   parser.parse(res);
   return true;
 }
 
 void Interpreter::EXEC_SELECT(const SemanticValues &vs) {
   string table_name = any_cast<string>(vs[0]);
-  cerr << table_name << endl;
   vector<string> attr_name;
   vector<string> target_name;
   vector<Where> where_select;
@@ -150,11 +150,11 @@ void Interpreter::EXEC_SELECT(const SemanticValues &vs) {
   API api;
   output_table = api.selectRecord(table_name, target_name, where_select, op);
   output_table.showTable();
+  std::cerr << output_table.getTuple().size() << std::endl;
 }
 
 void Interpreter::EXEC_CREATE_TABLE(const SemanticValues &vs) {
   string table_name = any_cast<string>(vs[0]);
-  cerr << table_name << endl;
   Index index;
   index.num = 0;
   Attribute attr;
@@ -171,7 +171,6 @@ void Interpreter::EXEC_CREATE_TABLE(const SemanticValues &vs) {
     if (attr.name[i] == primary_key) {
       attr.primary_key = i;
     }
-    cerr << attr.name[i] << " " << attr.type[i] << " " << attr.unique[i] << endl;
   }
   API api;
   api.createTable(table_name, attr, attr.primary_key, index);
@@ -179,11 +178,19 @@ void Interpreter::EXEC_CREATE_TABLE(const SemanticValues &vs) {
 
 void Interpreter::EXEC_INSERT(const SemanticValues &vs) {
   string table_name = any_cast<string>(vs[0]);
-  std::cerr << table_name << std::endl;
   Tuple tuple;
   for (int i = 1; i < vs.size(); ++i) {
     tuple.addData(any_cast<Data>(vs[i]));
   }
   API api;
   api.insertRecord(table_name, tuple);
+}
+
+void Interpreter::EXEC_CREATE_INDEX(const SemanticValues &vs) {
+  string index_name = any_cast<string>(vs[0]);
+  string table_name = any_cast<string>(vs[1]);
+  string attr_name = any_cast<string>(vs[2]);
+  cerr << table_name << " " << index_name << " " << attr_name << endl;
+  API api;
+  api.createIndex(table_name, index_name, attr_name);
 }

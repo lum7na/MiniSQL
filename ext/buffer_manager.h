@@ -32,8 +32,6 @@ class Page {
   char* getBuffer();
   void clear();
 
-  bool operator<(const Page& r) const { return getUseCount() < r.getUseCount(); }
-
  private:
   char* buffer;           //每一页都是一个大小为PAGESIZE字节的数组
   std::string file_name;  //页所对应的文件名
@@ -79,7 +77,7 @@ class BufferManager {
   int loadDiskBlock(int _page_id, std::string _file_name, int _block_id);
   void addUse(int _id);  // 增加Page id的使用次数
 
-  typedef __gnu_pbds::priority_queue<Page, std::less<Page>, __gnu_pbds::binomial_heap_tag> bheap;
+  typedef __gnu_pbds::priority_queue<std::pair<int, int>, std::less<std::pair<int, int> >, __gnu_pbds::binomial_heap_tag> bheap;
   bheap heap;
   bheap::point_iterator* heap_id;
   __gnu_pbds::gp_hash_table<std::pair<std::string, int>, int, chash> frame_id;

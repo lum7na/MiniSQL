@@ -15,7 +15,7 @@ Page::Page() {
   dirty = 0;
 }
 
-Page::~Page() { delete[] buffer; }
+Page::~Page() {}
 
 void Page::setFileName(std::string _file_name) { file_name = _file_name; }
 
@@ -72,19 +72,16 @@ void BufferManager::initialize(int _frame_size) {
 void BufferManager::addUse(int _id) {
   auto& p = frames[_id];
   p.addUse();
-  heap.modify(heap_id[_id], p);
+  heap.modify(heap_id[_id], {p.getUseCount(), _id});
 }
 
 char* BufferManager::getPage(std::string _file_name, int _block_id) {
   int id = getPageId(_file_name, _block_id);
   if (id == -1) {
     id = getEmptyPageId();
-    if (loadDiskBlock(id, _file_name, _block_id) == -1) {
-      frames[id].clear();
-      frames[id].setBlockId(_block_id);
-      frames[id].setFileName(_file_name);
-    }
+    loadDiskBlock(id, _file_name, _block_id);
     frame_id[{_file_name, _block_id}] = id;
+    heap_id[id] = heap.push({0, id});
   }
   addUse(id);
   return frames[id].getBuffer();
@@ -96,6 +93,7 @@ void BufferManager::modifyPage(int _page_id) {
 }
 
 void BufferManager::pinPage(int _page_id) {
+  assert(0);
   auto& p = frames[_page_id];
   if (p.getPinCount() == 0) {
     heap.erase(heap_id[_page_id]);
@@ -104,10 +102,11 @@ void BufferManager::pinPage(int _page_id) {
 }
 
 int BufferManager::unpinPage(int _page_id) {
+  assert(0);
   auto& p = frames[_page_id];
   p.unPin();
   if (p.getPinCount() == 0) {
-    heap_id[_page_id] = heap.push(p);
+    heap_id[_page_id] = heap.push({p.getUseCount(), _page_id});
     return -1;
   }
   return 0;
@@ -115,10 +114,12 @@ int BufferManager::unpinPage(int _page_id) {
 
 void BufferManager::flushPage(int _page_id, std::string _file_name, int _block_id) {
   auto& p = frames[_page_id];
-  std::ofstream ofs(_file_name + "_" + std::to_string(_block_id));
-  ofs.seekp(_block_id * PAGESIZE);
+  std::ofstream ofs(_file_name, std::ios::in | std::ios::ate | std::ios::binary);
+
+  ofs.seekp(_block_id * PAGESIZE, std::ios::beg);
   ofs.write(p.getBuffer(), PAGESIZE);
-  free_nodes.push(_page_id);
+
+  ofs.close();
 }
 
 int BufferManager::getPageId(std::string _file_name, int _block_id) {
@@ -134,19 +135,19 @@ int BufferManager::getEmptyPageId() {
   if (!free_nodes.empty()) {
     int ret = free_nodes.front();
     free_nodes.pop();
-    heap_id[ret] = heap.push(frames[ret]);
     return ret;
   }
   try {
     if (heap.size() == 0) {
       throw buffer_is_full();
     }
-    auto it = heap.top();
+    auto it = frames[heap.top().second];
     heap.pop();
     int id = frame_id[{it.getFileName(), it.getBlockId()}];
     if (frames[id].getDirty() == true) {
       flushPage(id, it.getFileName(), it.getBlockId());
     }
+    frame_id.erase({it.getFileName(), it.getBlockId()});
     return id;
   } catch (const buffer_is_full& bif) {
     std::cerr << "Buffer is full!" << std::endl;
@@ -155,15 +156,16 @@ int BufferManager::getEmptyPageId() {
 }
 
 int BufferManager::loadDiskBlock(int _page_id, std::string _file_name, int _block_id) {
-  std::ifstream ifs(_file_name + "_" + std::to_string(_block_id));
+  std::ifstream ifs(_file_name, std::ios::in | std::ios::ate | std::ios::binary);
   if (ifs.fail()) {
     return -1;
   }
-  ifs.seekg(_block_id * PAGESIZE);
+  ifs.seekg(_block_id * PAGESIZE, std::ios::beg);
   auto& p = frames[_page_id];
   p.clear();
   ifs.read(p.getBuffer(), PAGESIZE);
   p.setBlockId(_block_id);
   p.setFileName(_file_name);
+  ifs.close();
   return 0;
 }
