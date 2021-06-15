@@ -247,11 +247,7 @@ Table RecordManager::selectRecord(std::string table_name, std::string target_att
     }
   if (index == -1) throw attribute_not_exist();
 
-  std::cerr << attr.type[index] << " " << where.data.type << std::endl;
-
   if (attr.type[index] != where.data.type) throw data_type_conflict();
-
-  std::cerr << attr.type[index] << " " << where.data.type << std::endl;
 
   Table ret(result_table_name, attr);
   std::vector<Tuple> &tuples = ret.getTuple();
@@ -309,8 +305,6 @@ void RecordManager::createIndex(IndexManager &index_manager, std::string table_n
       p = p + tuple_len;
     }
   }
-
-  std::cerr << debug_cnt << std::endl;
 }
 
 //获取文件大小

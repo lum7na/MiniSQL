@@ -71,9 +71,9 @@ class API {
 
  private:
   //私有函数，用于多条件查询时的and条件合并
-  Table unionTable(Table &table1, Table &table2, std::string target_attr, Where where);
+  Table unionTable(Table &table1, Table &table2);
   //私有函数，用于多条件查询时的or条件合并
-  Table joinTable(Table &table1, Table &table2, std::string target_attr, Where where);
+  Table joinTable(Table &table1, Table &table2);
 
  private:
   RecordManager record;

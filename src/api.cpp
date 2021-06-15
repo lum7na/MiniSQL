@@ -8,12 +8,12 @@ Table API::selectRecord(std::string table_name, std::vector<std::string> target_
   } else {
     Table table1 = record.selectRecord(table_name, target_attr[0], where[0]);
     Table table2 = record.selectRecord(table_name, target_attr[1], where[1]);
-    std::cerr << table1.getTuple().size() << " " << table2.getTuple().size() << std::endl;
+    std::cerr << "table1&table2 " << table1.getTuple().size() << " " << table2.getTuple().size() << " " << (int)operation << std::endl;
 
-    if (operation) {
-      return joinTable(table1, table2, target_attr[0], where[0]);
+    if (!operation) {
+      return joinTable(table1, table2);
     } else {
-      return unionTable(table1, table2, target_attr[0], where[0]);
+      return unionTable(table1, table2);
     }
   }
 }
@@ -78,52 +78,54 @@ bool API::dropIndex(std::string table_name, std::string index_name) {
   return true;
 }
 
-Table API::unionTable(Table &table1, Table &table2, std::string target_attr, Where where) {
-  Table result_table(table1);
-  std::vector<Tuple> &result_tuple = result_table.getTuple();
+Table API::unionTable(Table &table1, Table &table2) {
+  Table result_table(table1.getTitle(), table1.getAttr());
   std::vector<Tuple> tuple1 = table1.getTuple();
   std::vector<Tuple> tuple2 = table2.getTuple();
-  result_tuple = tuple1;
-  int k = -1;
-  Attribute attr = table1.getAttr();
-  for (int i = 0; i < 32; ++i) {
-    if (attr.name[i] == target_attr) {
-      k = i;
+
+  int k = table1.getAttr().primary_key;
+  int i = 0;
+  int j = 0;
+  while (i < tuple1.size() && j < tuple2.size()) {
+    if (tuple1[i].getData()[k] < tuple2[j].getData()[k]) {
+      i++;
+    } else if (tuple2[j].getData()[k] < tuple1[i].getData()[k]) {
+      j++;
+    } else {
+      result_table.getTuple().push_back(tuple1[i++]);
+      j++;
     }
   }
-
-  for (int j = 0; j < tuple2.size(); ++j) {
-    if (!isSatisfied(tuple2[j], k, where)) {
-      result_tuple.push_back(tuple2[j]);
-    }
-  }
-
-  std::sort(result_tuple.begin(), result_tuple.end());
+  std::sort(result_table.getTuple().begin(), result_table.getTuple().end());
   return result_table;
 }
 
-Table API::joinTable(Table &table1, Table &table2, std::string target_attr, Where where) {
-  Table result_table(table1);
-  std::vector<Tuple> &result_tuple = result_table.getTuple();
+Table API::joinTable(Table &table1, Table &table2) {
+  Table result_table(table1.getTitle(), table1.getAttr());
   std::vector<Tuple> tuple1 = table1.getTuple();
   std::vector<Tuple> tuple2 = table2.getTuple();
 
-  int k = -1;
-  Attribute attr = table1.getAttr();
-  for (int i = 0; i < 32; ++i) {
-    if (attr.name[i] == target_attr) {
-      k = i;
-      break;
+  int k = table1.getAttr().primary_key;
+  int i = 0;
+  int j = 0;
+  while (i < tuple1.size() && j < tuple2.size()) {
+    if (tuple1[i].getData()[k] < tuple2[j].getData()[k]) {
+      result_table.getTuple().push_back(tuple1[i++]);
+    } else if (tuple2[j].getData()[k] < tuple1[i].getData()[k]) {
+      result_table.getTuple().push_back(tuple2[j++]);
+    } else {
+      result_table.getTuple().push_back(tuple1[i++]);
+      j++;
     }
   }
 
-  for (int j = 0; j < tuple2.size(); j++) {
-    if (isSatisfied(tuple2[j], k, where)) {
-      result_tuple.push_back(tuple2[j]);
-    }
+  while (i < tuple1.size()) {
+    result_table.getTuple().push_back(tuple1[i++]);
   }
-
-  std::sort(result_tuple.begin(), result_tuple.end());
+  while (j < tuple2.size()) {
+    result_table.getTuple().push_back(tuple2[j++]);
+  }
+  std::sort(result_table.getTuple().begin(), result_table.getTuple().end());
   return result_table;
 }
 
