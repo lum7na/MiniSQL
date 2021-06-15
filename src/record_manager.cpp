@@ -247,7 +247,11 @@ Table RecordManager::selectRecord(std::string table_name, std::string target_att
     }
   if (index == -1) throw attribute_not_exist();
 
+  std::cerr << attr.type[index] << " " << where.data.type << std::endl;
+
   if (attr.type[index] != where.data.type) throw data_type_conflict();
+
+  std::cerr << attr.type[index] << " " << where.data.type << std::endl;
 
   Table ret(result_table_name, attr);
   std::vector<Tuple> &tuples = ret.getTuple();
@@ -284,6 +288,8 @@ void RecordManager::createIndex(IndexManager &index_manager, std::string table_n
     }
   if (index == -1) throw attribute_not_exist();
 
+  int debug_cnt = 0;
+
   std::string index_path = "INDEX_FILE_" + target_attr + "_" + tmp_name;
   int block_num = getBlockNum(table_name);
   for (int idx = 0; idx < block_num; idx++) {
@@ -293,15 +299,18 @@ void RecordManager::createIndex(IndexManager &index_manager, std::string table_n
     while (*p != '\0' && p < original_p + PAGESIZE) {
       Tuple tuple = readTuple(p, attr);
 
-      if (tuple.isDeleted()) {
+      if (!tuple.isDeleted()) {
         std::vector<Data> data = tuple.getData();
         index_manager.insertIndex(index_path, data[index], idx);
+        ++debug_cnt;
       }
 
       int tuple_len = getTupleLength(p);
       p = p + tuple_len;
     }
   }
+
+  std::cerr << debug_cnt << std::endl;
 }
 
 //获取文件大小

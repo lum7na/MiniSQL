@@ -190,7 +190,6 @@ void Interpreter::EXEC_CREATE_INDEX(const SemanticValues &vs) {
   string index_name = any_cast<string>(vs[0]);
   string table_name = any_cast<string>(vs[1]);
   string attr_name = any_cast<string>(vs[2]);
-  cerr << table_name << " " << index_name << " " << attr_name << endl;
   API api;
   api.createIndex(table_name, index_name, attr_name);
 }
