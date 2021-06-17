@@ -115,12 +115,19 @@ w_or <- 'or'
   parser["CREATE"] = [this](const SemanticValues &vs) { EXEC_CREATE_TABLE(vs); };
   parser["INSERT"] = [this](const SemanticValues &vs) { EXEC_INSERT(vs); };
   parser["INDEX"] = [this](const SemanticValues &vs) { EXEC_CREATE_INDEX(vs); };
+  parser["DELETE"] = [this](const SemanticValues &vs) { EXEC_DELETE(vs); };
+  parser["DROP_TABLE"] = [this](const SemanticValues &vs) { EXEC_DROP_TABLE(vs); };
+  parser["DROP_INDEX"] = [this](const SemanticValues &vs) { EXEC_DROP_INDEX(vs); };
+  parser["EXEC"] = [this](const SemanticValues &vs) { EXEC_FILE(vs); };
   parser.enable_packrat_parsing();  // Enable packrat parsing.
 }
 
 bool Interpreter::getQuery() {
   string res;
   getline(cin, res);
+  if (cin.eof()) {
+    return false;
+  }
   if (res == "quit;") {
     return false;
   }
@@ -150,7 +157,6 @@ void Interpreter::EXEC_SELECT(const SemanticValues &vs) {
   API api;
   output_table = api.selectRecord(table_name, target_name, where_select, op);
   output_table.showTable();
-  std::cerr << output_table.getTuple().size() << std::endl;
 }
 
 void Interpreter::EXEC_CREATE_TABLE(const SemanticValues &vs) {
@@ -190,6 +196,34 @@ void Interpreter::EXEC_CREATE_INDEX(const SemanticValues &vs) {
   string index_name = any_cast<string>(vs[0]);
   string table_name = any_cast<string>(vs[1]);
   string attr_name = any_cast<string>(vs[2]);
+  idx2table[index_name] = table_name;
   API api;
   api.createIndex(table_name, index_name, attr_name);
+}
+
+void Interpreter::EXEC_DELETE(const SemanticValues &vs) {
+  string table_name = any_cast<string>(vs[0]);
+  string attr_name = any_cast<string>(vs[1]);
+  Where where = any_cast<Where>(vs[2]);
+  API api;
+  api.deleteRecord(table_name, attr_name, where);
+}
+
+void Interpreter::EXEC_DROP_TABLE(const SemanticValues &vs) {
+  string table_name = any_cast<string>(vs[0]);
+  API api;
+  api.dropTable(table_name);
+}
+
+void Interpreter::EXEC_DROP_INDEX(const SemanticValues &vs) {
+  string index_name = any_cast<string>(vs[0]);
+  API api;
+  api.dropIndex(idx2table[index_name], index_name);
+}
+
+void Interpreter::EXEC_FILE(const SemanticValues &vs) {
+  string filename = any_cast<string>(vs[0]);
+  freopen(filename.c_str(), "r", stdin);
+  while (getQuery()) {
+  };
 }

@@ -33,7 +33,7 @@ class Interpreter {
   //功能：删除表t1
   //异常：格式错误则抛出input_format_error
   //如果表不存在，抛出table_not_exist异常
-  void EXEC_DROP_TABLE();
+  void EXEC_DROP_TABLE(const SemanticValues &vs);
   //输入：drop index ID_index on t1;
   //输出：Success或者异常
   //功能：在表t1中删除一个名字叫ID_index的索引
@@ -41,7 +41,7 @@ class Interpreter {
   //如果表不存在，抛出table_not_exist异常
   //如果对应属性不存在，抛出attribute_not_exist异常
   //如果对应属性没有索引，抛出index_not_exist异常
-  void EXEC_DROP_INDEX();
+  void EXEC_DROP_INDEX(const SemanticValues &vs);
   //输入：create table T1(
   //            NAME char(32),
   //            ID int unique,
@@ -74,43 +74,16 @@ class Interpreter {
   //如果表不存在，抛出table_not_exist异常
   //如果属性不存在，抛出attribute_not_exist异常
   //如果Where条件中的两个数据类型不匹配，抛出data_type_conflict异常
-  void EXEC_DELETE();
-  //输入：describe T1;
-  //     或者 desc T1；
-  //功能：输出表T1的所有属性，索引的基本信息
-  void EXEC_SHOW();
+  void EXEC_DELETE(const SemanticValues &vs);
   //输入：exit;
   //功能：退出数据库
   void EXEC_EXIT();
   //输入：execfile 文件路径
   //功能：根据文件路径读取文件信息，并用于数据库的操作
-  void EXEC_FILE();
+  void EXEC_FILE(const SemanticValues &vs);
 
  private:
-  //字符串规范化函数
-  void Normalize();
-  //存放输入的字符串和规范化后的字符串
-  std::string query;
-  //输入：所对应的字符的开头位置，引用传出该字符的结尾位置
-  //输出：这个位置所对应的单词的字符串
-  //功能：从query中取字
-  std::string getWord(int pos, int &end_pos);
-  //输入：所需要转成小写的字符串，pos位置为所对应的单词的开始的位置
-  //输出：将pos位置的单词改成小写后，输出更改后的完整字符串
-  //功能：将字符串str中的pos位置开头的单词转化成小写，用于标准化
-  std::string getLower(std::string str, int pos);
-  //输入：所对应的字符的开头位置，引用传出该字符的结尾位置
-  //输出：这个位置所对应的关系符号
-  //功能：从query中取出关系符号
-  std::string getRelation(int pos, int &end_pos);
-  //输入：所对应的字符的开头位置，引用传出该字符的结尾位置
-  //输出：返回一个类型（-1～255）
-  int getType(int pos, int &end_pos);
-  //输出：返回一个整数的位数
-  int getBits(int num);
-  //输出：返回一个浮点数的位数（保留小数点后4位）
-  int getBits(float num);
-
+  std::map<std::string, std::string> idx2table;
   peg::parser parser;
 };
 

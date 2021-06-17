@@ -8,8 +8,6 @@ Table API::selectRecord(std::string table_name, std::vector<std::string> target_
   } else {
     Table table1 = record.selectRecord(table_name, target_attr[0], where[0]);
     Table table2 = record.selectRecord(table_name, target_attr[1], where[1]);
-    std::cerr << "table1&table2 " << table1.getTuple().size() << " " << table2.getTuple().size() << " " << (int)operation << std::endl;
-
     if (!operation) {
       return joinTable(table1, table2);
     } else {

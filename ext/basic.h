@@ -83,8 +83,7 @@ class Table {
   Index getIndex();
   short gethasKey();
 
-  void showTable();  //显示table的部分数据
-  void showTable(int limit);
+  void showTable(int limit = 100);  //显示table的部分数据
 };
 
 #endif

@@ -1,6 +1,11 @@
 #include "basic.h"
 
 #include <cassert>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "tabulate.hpp"
 
 Tuple::Tuple(const Tuple &tuple_in) {
   isDeleted_ = tuple_in.isDeleted_;
@@ -105,22 +110,48 @@ Attribute Table::getAttr() { return attr_; }
 std::vector<Tuple> &Table::getTuple() { return tuple_; }
 Index Table::getIndex() { return index_; }
 
-void Table::showTable() {
-  std::cout << "Table <" << title_ << ">" << std::endl;
-
-  for (int idx = 0; idx < attr_.num; idx++) std::cout << attr_.name[idx] << "\t";
-  std::cout << std::endl;
-
-  for (int idx = 0; idx < tuple_.size(); idx++) tuple_[idx].showTuple();
+void addRow(tabulate::Table &tabu, std::vector<std::string> &row) {
+  std::vector<variant<std::string, const char *, tabulate::Table>> mapped;
+  for (const auto &it : row) {
+    const auto varRow = variant<std::string, const char *, tabulate::Table>(it);
+    mapped.push_back(varRow);
+  }
+  tabu.add_row(mapped);
 }
 
 void Table::showTable(int limit) {
-  std::cout << "Table <" << title_ << ">" << std::endl;
+  tabulate::Table tabu;
+  std::vector<std::string> row;
+  for (int i = 0; i < attr_.num; ++i) {
+    row.push_back(attr_.name[i]);
+  }
 
-  for (int idx = 0; idx < attr_.num; idx++) std::cout << attr_.name[idx] << "\t";
-  std::cout << std::endl;
+  addRow(tabu, row);
 
-  for (int idx = 0; idx < tuple_.size() && idx < limit; idx++) tuple_[idx].showTuple();
+  for (int idx = 0; idx < std::min((int)tuple_.size(), limit); idx++) {
+    row.clear();
+
+    for (int k = 0; k < tuple_[idx].getData().size(); ++k) {
+      switch (tuple_[idx].getData()[k].type) {
+        case -1:
+          row.push_back(std::to_string(tuple_[idx].getData()[k].datai));
+          break;
+        case 0:
+          row.push_back(std::to_string(tuple_[idx].getData()[k].dataf));
+          break;
+        default:
+          row.push_back(tuple_[idx].getData()[k].datas);
+          break;
+      }
+    }
+    addRow(tabu, row);
+  }
+
+  for (size_t i = 0; i < attr_.num; ++i) {
+    tabu[0][i].format().font_color(tabulate::Color::yellow).font_align(tabulate::FontAlign::center).font_style({tabulate::FontStyle::bold});
+  }
+
+  std::cout << tabu << std::endl;
 }
 
 bool Data::operator<(const Data &rhs) const {
