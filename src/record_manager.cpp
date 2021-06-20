@@ -460,7 +460,7 @@ void RecordManager::searchWithIndex(std::string table_name, std::string target_a
         tmp_data.dataf = -INF;
         break;
       default:
-        tmp_data.type = 1;
+        tmp_data.type = -2;
         tmp_data.datas = "";
         break;
     }

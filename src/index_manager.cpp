@@ -213,7 +213,7 @@ void IndexManager::searchRange(std::string file_path, Data data1, Data data2, st
   if (data1.type == -2)
     flag = 1;
   else if (data2.type == -2)
-    flag = 1;
+    flag = 2;
 
   switch (data1.type) {
     case -1: {
