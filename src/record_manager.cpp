@@ -42,6 +42,12 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
 
   // 检查是否存在类型不匹配的情况
   for (int idx = 0; idx < attr.num; idx++) {
+    // 输入是int类型，但是属性为float类型，如将2.0写成2
+    if ((data[idx].type == -1) && (attr.type[idx] == 0))
+    {
+      data[idx].dataf = data[idx].datai;
+      data[idx].type = 0;
+    }
     if (data[idx].type != attr.type[idx]) throw tuple_type_conflict();
   }
 
@@ -178,6 +184,13 @@ int RecordManager::deleteRecord(std::string table_name, std::string target_attr,
       break;
     }
   if (index == -1) throw attribute_not_exist();
+  
+  // 输入是int类型，但是属性为float类型，如将2.0写成2
+  if ((attr.type[index] == 0) && (where.data.type == -1))
+  {
+    where.data.dataf = where.data.datai;
+    where.data.type = 0;
+  }
 
   if (attr.type[index] != where.data.type) throw data_type_conflict();
 
@@ -246,6 +259,13 @@ Table RecordManager::selectRecord(std::string table_name, std::string target_att
       break;
     }
   if (index == -1) throw attribute_not_exist();
+  
+  // 输入是int类型，但是属性为float类型，如将2.0写成2
+  if ((attr.type[index] == 0) && (where.data.type == -1))
+  {
+    where.data.dataf = where.data.datai;
+    where.data.type = 0;
+  }
 
   if (attr.type[index] != where.data.type) throw data_type_conflict();
 
@@ -544,21 +564,24 @@ void RecordManager::conditionSelectInBlock(std::string table_name, int block_id,
   while (*p != '\0' && p < original_p + PAGESIZE) {
     Tuple tuple = readTuple(p, attr);
 
-    if (tuple.isDeleted()) continue;
+    // 修改之前delete之后马上select会卡住，因为忘了加上p了
+    if (!tuple.isDeleted())
+    {
+      std::vector<Data> data = tuple.getData();
 
-    std::vector<Data> data = tuple.getData();
-
-    switch (attr.type[index]) {
-      case -1:
-        if (isSatisfied(data[index].datai, where.data.datai, where.relation_character)) v.push_back(tuple);
-        break;
-      case 0:
-        if (isSatisfied(data[index].dataf, where.data.dataf, where.relation_character)) v.push_back(tuple);
-        break;
-      default:
-        if (isSatisfied(data[index].datas, where.data.datas, where.relation_character)) v.push_back(tuple);
-        break;
+      switch (attr.type[index]) {
+        case -1:
+          if (isSatisfied(data[index].datai, where.data.datai, where.relation_character)) v.push_back(tuple);
+          break;
+        case 0:
+          if (isSatisfied(data[index].dataf, where.data.dataf, where.relation_character)) v.push_back(tuple);
+          break;
+        default:
+          if (isSatisfied(data[index].datas, where.data.datas, where.relation_character)) v.push_back(tuple);
+          break;
+      }
     }
+    
     int len = getTupleLength(p);
     p = p + len;
   }
