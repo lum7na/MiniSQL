@@ -19,6 +19,7 @@ void RecordManager::dropTableFile(std::string table_name) {
   // 此函数仅移除文件，catalog中的记录需要另外调用catalog manager完成
   table_name = "./database/data/" + table_name;
   remove(table_name.c_str());
+  buffer_manager.removeFile(table_name);
 }
 
 //输入：表名，一个元组
@@ -96,8 +97,6 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
 
   int page_id = buffer_manager.getPageId(table_name, block_offset);
   buffer_manager.modifyPage(page_id);
-
-
 
   //更新索引
   IndexManager index_manager(tmp_name);

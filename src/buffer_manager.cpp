@@ -98,7 +98,6 @@ void BufferManager::modifyPage(int _page_id) {
 }
 
 void BufferManager::pinPage(int _page_id) {
-  assert(0);
   auto& p = frames[_page_id];
   if (p.getPinCount() == 0) {
     heap.erase(heap_id[_page_id]);
@@ -107,7 +106,6 @@ void BufferManager::pinPage(int _page_id) {
 }
 
 int BufferManager::unpinPage(int _page_id) {
-  assert(0);
   auto& p = frames[_page_id];
   p.unPin();
   if (p.getPinCount() == 0) {
@@ -158,6 +156,19 @@ int BufferManager::getEmptyPageId() {
     std::cerr << "Buffer is full!" << std::endl;
   }
   assert(0);
+}
+
+void BufferManager::removeFile(std::string _file_name) {
+  std::vector<std::pair<std::string, int> > rm_page;
+  for (auto frame : frame_id) {
+    if (_file_name == frame.first.first) {
+      rm_page.push_back(frame.first);
+      free_nodes.push(frame.second);
+    }
+  }
+  for (auto rm_pair : rm_page) {
+    frame_id.erase(rm_pair);
+  }
 }
 
 int BufferManager::loadDiskBlock(int _page_id, std::string _file_name, int _block_id) {

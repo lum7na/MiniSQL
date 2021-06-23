@@ -19,7 +19,7 @@ class Interpreter {
 
   //功能：获取一行输入的信息，并将输入的格式规范化
   //异常：无异常
-  bool getQuery();
+  bool getQuery(int flag = 0);
   //输入：select last_name,first_name,birth,state from president where t1<10 and t2>20 ;
   //输出：Success或者异常
   //功能：进行选择操作，支持单表多约束

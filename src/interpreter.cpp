@@ -129,7 +129,10 @@ w_or <- 'or'
 }
 
 
-bool Interpreter::getQuery() {
+bool Interpreter::getQuery(int flag) {
+  if (!flag) {
+    cout << ">>>";
+  }
   string res;
   getline(cin, res);
   if (cin.eof()) {
@@ -140,6 +143,9 @@ bool Interpreter::getQuery() {
   }
   while (res.back() != ';') {
     string res_t;
+    if (!flag) {
+      cout << ">>>";
+    }
     getline(cin, res_t);
     res += res_t;
   }
@@ -245,6 +251,6 @@ void Interpreter::EXEC_DROP_INDEX(const SemanticValues &vs) {
 void Interpreter::EXEC_FILE(const SemanticValues &vs) {
   string filename = any_cast<string>(vs[0]);
   freopen(filename.c_str(), "r", stdin);
-  while (getQuery()) {
+  while (getQuery(1)) {
   };
 }

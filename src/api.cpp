@@ -1,5 +1,7 @@
 #include "api.h"
 
+#include "basic.h"
+
 Table API::selectRecord(std::string table_name, std::vector<std::string> target_attr, std::vector<Where> where, char operation) {
   if (target_attr.size() == 0) {
     return record.selectRecord(table_name);
@@ -35,6 +37,11 @@ bool API::createTable(std::string table_name, Attribute attribute, int primary, 
 }
 
 bool API::dropTable(std::string table_name) {
+  Attribute attr = catalog.getAttribute(table_name);
+  Index index = catalog.getIndex(table_name);
+  for (int i = 0; i < index.num; i++) {
+    dropIndex(table_name, index.indexname[i]);
+  }
   record.dropTableFile(table_name);
   catalog.dropTable(table_name);
   return true;

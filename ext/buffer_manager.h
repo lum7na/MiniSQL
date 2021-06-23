@@ -66,6 +66,8 @@ class BufferManager {
   void flushPage(int _page_id, std::string _file_name, int _block_id);
   // 获取对应文件的对应块在内存中的页号，没有找到返回-1
   int getPageId(std::string _file_name, int _block_id);
+  // 删除文件在buffer中的所有块
+  void removeFile(std::string _file_name);
 
  private:
   Page* frames;                      //缓冲池，实际上就是一个元素为Page的数组，实际内存空间将分配在堆上

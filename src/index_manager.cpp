@@ -66,7 +66,8 @@ void IndexManager::createIndex(std::string file_path, int type) {
 //异常：
 void IndexManager::dropIndex(std::string file_path, int type) {
   if (type < -1) std::cout << "Invalid data type!" << std::endl;
-
+  remove(("./database/index/" + file_path).c_str());
+  buffer_manager.removeFile("./database/index/" + file_path);
   switch (type) {
     case -1: {
       intMap::iterator iter = indexIntMap.find(file_path);
