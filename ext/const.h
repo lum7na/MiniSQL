@@ -4,6 +4,6 @@
 // 每一页的大小为4KB
 #define PAGESIZE 4096
 // 最大页数为100
-#define MAXFRAMESIZE 10
+#define MAXFRAMESIZE 512
 
 #endif
