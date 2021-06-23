@@ -97,6 +97,8 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
   int page_id = buffer_manager.getPageId(table_name, block_offset);
   buffer_manager.modifyPage(page_id);
 
+
+
   //更新索引
   IndexManager index_manager(tmp_name);
   for (int i = 0; i < attr.num; i++) {
@@ -150,7 +152,6 @@ int RecordManager::deleteRecord(std::string table_name) {
     }
     buffer_manager.modifyPage(page_id);
   }
-
   return ret;
 }
 

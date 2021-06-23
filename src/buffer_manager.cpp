@@ -58,7 +58,12 @@ BufferManager::BufferManager() {
 
 BufferManager::BufferManager(int _frame_size) { initialize(_frame_size); }
 
-BufferManager::~BufferManager() { delete[] heap_id; }
+BufferManager::~BufferManager() {
+  for (auto frame : frame_id) {
+    flushPage(frame.second, frame.first.first, frame.first.second);
+  }
+  delete[] heap_id;
+}
 
 void BufferManager::initialize(int _frame_size) {
   frames = new Page[_frame_size];

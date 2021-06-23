@@ -48,3 +48,8 @@ w_and <- 'and'
 w_or <- 'or'
 %whitespace <- [ \t]*
 ```
+
+
+TODO 
+
+- delete from lyy;报错

@@ -1,1 +1,5 @@
 build
+.ccls
+.ccls-cache
+compile_commands.json
+MiniSQL.7z

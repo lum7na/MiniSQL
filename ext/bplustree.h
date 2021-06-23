@@ -78,6 +78,7 @@ class BPlusTree {
   // fileNode* file; // the filenode of this tree
   //每个key值的size，对于一颗树来说，所有key的size应是相同的
   int key_size;
+  int size = 0;
 
  public:
   //构造函数
@@ -721,6 +722,7 @@ bool BPlusTree<T>::insertKey(T key, int val) {
       }
       root = new_root;
     }
+    ++size;
   }
   return insert_result;
 }
@@ -728,10 +730,16 @@ bool BPlusTree<T>::insertKey(T key, int val) {
 template <typename T>
 bool BPlusTree<T>::deleteKey(T key) {
   bool delete_res = root->Delete(key);
+  if (delete_res) {
+    --size;
+  }
   if (delete_res && root->key.size() == 0 && !root->isLeaf) {
     TreeNode<T>* tempnode = root;
     root = dynamic_cast<NonLeaf<T>*>(root)->child[0];
     delete tempnode;
+  }
+  if (!size) {
+    root = new Leaf<T>(Degree);
   }
   return delete_res;
 }

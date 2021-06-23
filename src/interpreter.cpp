@@ -6,6 +6,10 @@ using namespace std;
 using namespace peg;
 
 Interpreter::Interpreter() {
+  parser.log = [](size_t line, size_t col, const string& msg) {
+    cerr << "Please check the input format." << "\n";
+    cerr << line << ":" << col << ": " << msg << endl;
+  };
   parser.load_grammar(R"(
 SQL <- SELECT / CREATE / DROP_TABLE / INDEX / DROP_INDEX / INSERT / DELETE / QUIT / EXEC 
 SELECT <- 'select' '*' 'from' any_name ';' / 'select' '*' 'from' any_name 'where' any_name any_cond (any_logic any_name any_cond)* ';'
@@ -17,19 +21,20 @@ INDEX <- 'create' 'index' any_name 'on' any_name '(' any_name ')' ';'
 DROP_INDEX <- 'drop' 'index' any_name ';'
 INSERT <- 'insert' 'into' any_name 'values' '(' (any_val ','?)* ')'  ';'
 QUIT <- 'quit;'
-EXEC <- 'execfile' any_name ';'
+EXEC <- 'execfile' any_filename ';'
 any_type <- 'int' / 'float' / 'char' '(' any_int ')'
-any_name <- < [a-z0-9]+ >
+any_name <- < [A-Za-z0-9]+ >
 any_cond <- any_op ' ' any_val
 any_logic <- w_and / w_or
 any_op <- [<=>]*
 any_val <- any_string / any_float / any_int
-any_string <- < '\'' [a-z0-9A-Z-_]+ '\'' > 
+any_string <- < '\'' [a-z0-9A-Z-_ ]+ '\'' > 
 any_int <-  < '-'?[0-9]+ >
 any_float <-  < '-'?[0-9]*'.'[0-9]+ >
+any_filename <- < [A-Za-z0-9.]+ >
 w_and <- 'and'
 w_or <- 'or'
-%whitespace <- [ \t]*
+%whitespace <- [ \t\n]*
   )");
   assert(static_cast<bool>(parser) == true);
 
@@ -91,6 +96,7 @@ w_or <- 'or'
     return res;
   };
   parser["any_name"] = [](const SemanticValues &vs) { return vs.token_to_string(); };
+  parser["any_filename"] = [](const SemanticValues &vs) { return vs.token_to_string(); };
   parser["any_type"] = [](const SemanticValues &vs) {
     switch (vs.choice()) {
       case 0:
@@ -121,6 +127,7 @@ w_or <- 'or'
   parser["EXEC"] = [this](const SemanticValues &vs) { EXEC_FILE(vs); };
   parser.enable_packrat_parsing();  // Enable packrat parsing.
 }
+
 
 bool Interpreter::getQuery() {
   string res;
@@ -202,9 +209,23 @@ void Interpreter::EXEC_CREATE_INDEX(const SemanticValues &vs) {
 }
 
 void Interpreter::EXEC_DELETE(const SemanticValues &vs) {
-  string table_name = any_cast<string>(vs[0]);
-  string attr_name = any_cast<string>(vs[1]);
-  Where where = any_cast<Where>(vs[2]);
+  string table_name = "";
+  string attr_name = "";
+  Where where;
+  switch (vs.choice()) {
+  case 0: {
+    table_name = any_cast<string>(vs[0]);
+    attr_name = "";
+    where;
+    break;
+  }
+  case 1: {
+    table_name = any_cast<string>(vs[0]);
+    attr_name = any_cast<string>(vs[1]);
+    where = any_cast<Where>(vs[2]);
+    break;
+  }
+  }
   API api;
   api.deleteRecord(table_name, attr_name, where);
 }
