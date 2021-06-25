@@ -319,12 +319,12 @@ void NonLeaf<T>::RedistributeLeaf(int i) {
       left_len = new_len - this->child[i]->key.size();
       //对key值的重分配
       for (int j = 0; j < left_len; j++) {
-        child[i]->key.insert(child[i]->key.begin(), child[i - 1]->key[j]);
+        child[i]->key.insert(child[i]->key.begin(), *(child[i-1]->key.end()-1-j));
       }
       child[i - 1]->key.erase(child[i - 1]->key.end() - left_len, child[i - 1]->key.end());
       //对record的重分配
       for (int j = 0; j < left_len; j++) {
-        dynamic_cast<Leaf<T>*>(child[i])->vals.insert(dynamic_cast<Leaf<T>*>(child[i])->vals.begin(), dynamic_cast<Leaf<T>*>(child[i - 1])->vals[j]);
+        dynamic_cast<Leaf<T>*>(child[i])->vals.insert(dynamic_cast<Leaf<T>*>(child[i])->vals.begin(), *(dynamic_cast<Leaf<T>*>(child[i-1])->vals.end()-1-j));
       }
       dynamic_cast<Leaf<T>*>(child[i - 1])->vals.erase(dynamic_cast<Leaf<T>*>(child[i - 1])->vals.end() - left_len, dynamic_cast<Leaf<T>*>(child[i - 1])->vals.end());
       //然后修改对应的key值
@@ -360,7 +360,7 @@ void NonLeaf<T>::RedistributeNonLeaf(int i) {
       left_len = new_len - this->child[i]->key.size();
       //对key值的重分配
       child[i]->key.push_back(this->key[i]);  //首先把分割两个child的key值放进child[i]里
-      for (int j = 0; j < left_len - 1; j++) {
+      for (int j = 0; j < left_len; j++) {
         child[i]->key.push_back(child[i + 1]->key[j]);
       }
       child[i + 1]->key.erase(child[i + 1]->key.begin(), child[i + 1]->key.begin() + left_len - 1);
@@ -371,7 +371,8 @@ void NonLeaf<T>::RedistributeNonLeaf(int i) {
       dynamic_cast<NonLeaf<T>*>(child[i + 1])->child.erase(dynamic_cast<NonLeaf<T>*>(child[i + 1])->child.begin(), dynamic_cast<NonLeaf<T>*>(child[i + 1])->child.begin() + left_len);
 
       //然后修改对应的key值
-      this->key[i] = child[i + 1]->key[0];
+      this->key[i] = *(child[i]->key.end() - 1);
+      child[i]->key.pop_back();
     }
 
   } else {
@@ -483,7 +484,7 @@ bool NonLeaf<T>::Delete(T ele) {
   delete_result = child[i + 1]->Delete(ele);
   //若删除成功，还需要做重分配
   if (delete_result) {
-    if (this->key[i] == ele) {
+    if (i > 0 && this->key[i] == ele) {
       TreeNode<T>* tempnode;
       tempnode = child[i + 1];
       while (!tempnode->isLeaf) {
