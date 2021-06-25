@@ -484,7 +484,7 @@ bool NonLeaf<T>::Delete(T ele) {
   delete_result = child[i + 1]->Delete(ele);
   //若删除成功，还需要做重分配
   if (delete_result) {
-    if (i > 0 && this->key[i] == ele) {
+    if (i >= 0 && this->key[i] == ele) {
       TreeNode<T>* tempnode;
       tempnode = child[i + 1];
       while (!tempnode->isLeaf) {
