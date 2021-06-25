@@ -1,4 +1,5 @@
 #include "record_manager.h"
+#include "exception.h"
 
 //输入：表名
 //输出：void
@@ -51,18 +52,43 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
     if (data[idx].type != attr.type[idx]) throw tuple_type_conflict();
   }
 
-  Table table = selectRecord(tmp_name);
-  std::vector<Tuple> &tuples = table.getTuple();
-
-  // 检查是否存在主键冲突
-  for (int idx = 0; idx < attr.num; idx++) {
-    if (isConflict(tuples, data, attr.primary_key)) throw primary_key_conflict();
+  bool read_table = false;
+  IndexManager index_manager(tmp_name);
+  
+  for (int i = 0; i < attr.num; ++i) {
+    if (attr.unique[i] && !attr.has_index[i]) {
+      read_table = true;
+    }
   }
 
-  // 检查是否满足唯一性条件
-  for (int idx = 0; idx < attr.num; idx++) {
-    if (attr.unique[idx] && isConflict(tuples, data, idx)) throw unique_conflict();
+  if (read_table) {
+    Table table = selectRecord(tmp_name);
+    std::vector<Tuple> &tuples = table.getTuple();
+    
+    // 检查是否存在主键冲突
+    for (int idx = 0; idx < attr.num; idx++) {
+      if (isConflict(tuples, data, attr.primary_key)) throw primary_key_conflict();
+    }
+
+    // 检查是否满足唯一性条件
+    for (int idx = 0; idx < attr.num; idx++) {
+      if (attr.unique[idx] && isConflict(tuples, data, idx)) throw unique_conflict();
+    }
+  } else {
+    string file_name = "INDEX_FILE_" + attr.name[attr.primary_key] + "_" + tmp_name;
+    if (index_manager.findIndex(file_name, tuple.getData()[attr.primary_key]) != -1) {
+      throw primary_key_conflict();
+    }
+    for (int i = 0; i < attr.num; ++i) {
+      if (attr.unique[i])  {
+	string file_name = "INDEX_FILE_" + attr.name[i] + "_" + tmp_name;
+	if (index_manager.findIndex(file_name, tuple.getData()[i]) != -1) {
+	  throw unique_conflict();
+	}
+      }
+    }
   }
+  
 
   int block_offset;
 
@@ -105,7 +131,6 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
   buffer_manager.modifyPage(page_id);
 
   //更新索引
-  IndexManager index_manager(tmp_name);
   for (int i = 0; i < attr.num; i++) {
     if (attr.has_index[i] == true) {
       std::string attr_name = attr.name[i];

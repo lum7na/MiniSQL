@@ -1,5 +1,14 @@
 #include "index_manager.h"
 
+
+typedef std::map<std::string, BPlusTree<int> *> intMap;
+typedef std::map<std::string, BPlusTree<std::string> *> stringMap;
+typedef std::map<std::string, BPlusTree<float> *> floatMap;
+
+intMap indexIntMap;
+stringMap indexStringMap;
+floatMap indexFloatMap;
+
 //构造函数
 //功能：根据输入的table_name创建索引文件
 IndexManager::IndexManager(std::string table_name) {
@@ -14,10 +23,12 @@ IndexManager::IndexManager(std::string table_name) {
 }
 
 //析构函数
-IndexManager::~IndexManager() {
+IndexManager::~IndexManager(){};
+
+void IndexManager::writeBack() {
+  
   for (intMap::iterator iter = indexIntMap.begin(); iter != indexIntMap.end(); iter++)
-    if (iter->second) {
-      iter->second->writtenbackToDiskAll();
+    if (iter->second) { iter->second->writtenbackToDiskAll();
       delete iter->second;
     }
 
@@ -34,6 +45,7 @@ IndexManager::~IndexManager() {
     }
 }
 
+
 //输入：Index文件名(路径)，索引的key的类型
 //输出：void
 //功能：创建索引文件及B+树
@@ -43,18 +55,27 @@ void IndexManager::createIndex(std::string file_path, int type) {
 
   switch (type) {
     case -1: {
-      BPlusTree<int> *bplustree = new BPlusTree<int>(file_path, getKeySize(type), getDegree(type));
-      indexIntMap.insert(intMap::value_type(file_path, bplustree));
+      auto &indexMap = indexIntMap;
+      if (indexMap.find(file_path) == indexMap.end()) {
+	BPlusTree<int> *bplustree = new BPlusTree<int>(file_path, getKeySize(type), getDegree(type));
+	indexIntMap.insert(intMap::value_type(file_path, bplustree));
+      }
       break;
     }
     case 0: {
-      BPlusTree<float> *bplustree = new BPlusTree<float>(file_path, getKeySize(type), getDegree(type));
-      indexFloatMap.insert(floatMap::value_type(file_path, bplustree));
+      auto &indexMap = indexFloatMap;
+      if (indexMap.find(file_path) == indexMap.end()) {
+	BPlusTree<float> *bplustree = new BPlusTree<float>(file_path, getKeySize(type), getDegree(type));
+	indexFloatMap.insert(floatMap::value_type(file_path, bplustree));
+      }
       break;
     }
     default: {
-      BPlusTree<std::string> *bplustree = new BPlusTree<std::string>(file_path, getKeySize(type), getDegree(type));
-      indexStringMap.insert(stringMap::value_type(file_path, bplustree));
+      auto &indexMap = indexStringMap;
+      if (indexMap.find(file_path) == indexMap.end()) {
+	BPlusTree<std::string> *bplustree = new BPlusTree<std::string>(file_path, getKeySize(type), getDegree(type));
+	indexStringMap.insert(stringMap::value_type(file_path, bplustree));
+      }
       break;
     }
   }

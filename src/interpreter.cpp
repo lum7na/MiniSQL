@@ -129,16 +129,21 @@ w_or <- 'or'
 }
 
 
-bool Interpreter::getQuery(int flag) {
+bool Interpreter::getQuery(istream &is, int flag) {
   if (!flag) {
     cout << ">>>";
   }
   string res;
-  getline(cin, res);
-  if (cin.eof()) {
+  getline(is, res);
+  if (is.eof()) {
     return false;
   }
+
   if (res == "quit;") {
+    if (!flag) {
+      API api;
+      api.quit();
+    }
     return false;
   }
   while (res.back() != ';') {
@@ -146,7 +151,7 @@ bool Interpreter::getQuery(int flag) {
     if (!flag) {
       cout << ">>>";
     }
-    getline(cin, res_t);
+    getline(is, res_t);
     res += res_t;
   }
   parser.parse(res);
@@ -222,7 +227,6 @@ void Interpreter::EXEC_DELETE(const SemanticValues &vs) {
   case 0: {
     table_name = any_cast<string>(vs[0]);
     attr_name = "";
-    where;
     break;
   }
   case 1: {
@@ -250,7 +254,9 @@ void Interpreter::EXEC_DROP_INDEX(const SemanticValues &vs) {
 
 void Interpreter::EXEC_FILE(const SemanticValues &vs) {
   string filename = any_cast<string>(vs[0]);
-  freopen(filename.c_str(), "r", stdin);
-  while (getQuery(1)) {
+  ifstream ifs(filename);
+  while (getQuery(ifs, 1)) {
   };
+  ifs.close();
 }
+

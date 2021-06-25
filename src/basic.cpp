@@ -203,7 +203,6 @@ int main() {
   table.setIndex(1, "Index on int");
 
   table.showTable();
-
   return 0;
 }
 

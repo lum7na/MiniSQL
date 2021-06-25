@@ -617,7 +617,6 @@ int BPlusTree<T>::searchVal(T& ele) {
   if (find_result != NULL && index >= 0) {
     return dynamic_cast<Leaf<T>*>(find_result)->vals[index];
   } else {
-    cout << "Key not in BPlus tree! Findkey failed." << endl;
     return -1;
   }
 }

@@ -1,6 +1,7 @@
 #include "api.h"
 
 #include "basic.h"
+#include "index_manager.h"
 
 Table API::selectRecord(std::string table_name, std::vector<std::string> target_attr, std::vector<Where> where, char operation) {
   if (target_attr.size() == 0) {
@@ -29,10 +30,11 @@ int API::deleteRecord(std::string table_name, std::string target_attr, Where whe
 }
 
 void API::insertRecord(std::string table_name, Tuple &tuple) { record.insertRecord(table_name, tuple); }
-
+ 
 bool API::createTable(std::string table_name, Attribute attribute, int primary, Index index) {
   record.createTableFile(table_name);
   catalog.createTable(table_name, attribute, primary, index);
+  createIndex(table_name, table_name + "_primary", attribute.name[primary]);
   return true;
 }
 
@@ -103,6 +105,11 @@ Table API::unionTable(Table &table1, Table &table2) {
   }
   std::sort(result_table.getTuple().begin(), result_table.getTuple().end());
   return result_table;
+}
+
+void API::quit() {
+  IndexManager index_manager("");
+  index_manager.writeBack();
 }
 
 Table API::joinTable(Table &table1, Table &table2) {
@@ -222,3 +229,4 @@ bool isSatisfied(Tuple &tuple, int target_attr, Where where) {
 
   return false;
 }
+

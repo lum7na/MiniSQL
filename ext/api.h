@@ -69,6 +69,8 @@ class API {
   //如果对应属性没有索引，抛出index_not_exist异常
   bool dropIndex(std::string table_name, std::string index_name);
 
+  void quit();
+
  private:
   //私有函数，用于多条件查询时的and条件合并
   Table unionTable(Table &table1, Table &table2);
@@ -86,3 +88,4 @@ bool sortcmp(const Tuple &tuple1, const Tuple &tuple2);
 bool calcmp(const Tuple &tuple1, const Tuple &tuple2);
 bool isSatisfied(Tuple &tuple, int target_attr, Where where);
 #endif
+

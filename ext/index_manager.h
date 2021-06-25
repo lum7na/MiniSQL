@@ -11,6 +11,8 @@
 #include "buffer_manager.h"
 #include "bplustree.h"
 
+
+
 class IndexManager {
 public:
   //构造函数
@@ -48,17 +50,11 @@ public:
   //异常：
   void searchRange(std::string file_path, Data data1, Data data2, std::vector<int>& vals);
 
-private:
-  typedef std::map<std::string, BPlusTree<int> *> intMap;
-  typedef std::map<std::string, BPlusTree<std::string> *> stringMap;
-  typedef std::map<std::string, BPlusTree<float> *> floatMap;
+  void writeBack();
 
+private:
   int static const TYPE_FLOAT = 0;
   int static const TYPE_INT = -1;
-
-  intMap indexIntMap;
-  stringMap indexStringMap;
-  floatMap indexFloatMap;
 
   //计算B+树适合的degree
   int getDegree(int type);
