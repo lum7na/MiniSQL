@@ -119,7 +119,7 @@ void addRow(tabulate::Table &tabu, std::vector<std::string> &row) {
   tabu.add_row(mapped);
 }
 
-void Table::showTable(int limit) {
+void Table::showTable() {
   tabulate::Table tabu;
   std::vector<std::string> row;
   for (int i = 0; i < attr_.num; ++i) {
@@ -128,7 +128,7 @@ void Table::showTable(int limit) {
 
   addRow(tabu, row);
 
-  for (int idx = 0; idx < std::min((int)tuple_.size(), limit); idx++) {
+  for (int idx = 0; idx < (int)tuple_.size(); idx++) {
     row.clear();
 
     for (int k = 0; k < tuple_[idx].getData().size(); ++k) {
@@ -140,7 +140,11 @@ void Table::showTable(int limit) {
           row.push_back(std::to_string(tuple_[idx].getData()[k].dataf));
           break;
         default:
-          row.push_back(tuple_[idx].getData()[k].datas);
+	  std::string t = tuple_[idx].getData()[k].datas;
+	  while (t.back() == '%') {
+	    t.pop_back();
+	  }
+          row.push_back(t);
           break;
       }
     }

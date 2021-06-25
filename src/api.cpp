@@ -3,25 +3,24 @@
 #include "basic.h"
 #include "index_manager.h"
 
-Table API::selectRecord(std::string table_name, std::vector<std::string> target_attr, std::vector<Where> where, char operation) {
+Table API::selectRecord(std::string table_name, std::vector<std::string> target_attr, std::vector<Where> where) {
   if (target_attr.size() == 0) {
     return record.selectRecord(table_name);
   } else if (target_attr.size() == 1) {
     return record.selectRecord(table_name, target_attr[0], where[0]);
   } else {
     Table table1 = record.selectRecord(table_name, target_attr[0], where[0]);
-    Table table2 = record.selectRecord(table_name, target_attr[1], where[1]);
-    if (!operation) {
-      return joinTable(table1, table2);
-    } else {
-      return unionTable(table1, table2);
+    for (int i = 1; i < target_attr.size(); ++i) {
+      Table table2 = record.selectRecord(table_name, target_attr[i], where[i]);
+      table1 = unionTable(table1, table2);
     }
+    return table1;
   }
 }
 
-int API::deleteRecord(std::string table_name, std::string target_attr, Where where) {
+int API::deleteRecord(std::string table_name, std::vector<std::string> target_attr, std::vector<Where> where) {
   int result = -1;
-  if (target_attr == "") {
+  if (target_attr.size() == 0) {
     result = record.deleteRecord(table_name);
   } else {
     result = record.deleteRecord(table_name, target_attr, where);

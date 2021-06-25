@@ -12,14 +12,16 @@ floatMap indexFloatMap;
 //构造函数
 //功能：根据输入的table_name创建索引文件
 IndexManager::IndexManager(std::string table_name) {
-  CatalogManager catalog_manager;
-  Attribute attr = catalog_manager.getAttribute(table_name);
-
-  for (int idx = 0; idx < attr.num; idx++)
+  if (table_name != "" ) {
+    CatalogManager catalog_manager;
+    Attribute attr = catalog_manager.getAttribute(table_name);
+    
+    for (int idx = 0; idx < attr.num; idx++)
     if (attr.has_index[idx]) {
       std::string index_path = "INDEX_FILE_" + attr.name[idx] + "_" + table_name;
       createIndex(index_path, attr.type[idx]);
     }
+  }
 }
 
 //析构函数
@@ -28,7 +30,8 @@ IndexManager::~IndexManager(){};
 void IndexManager::writeBack() {
   
   for (intMap::iterator iter = indexIntMap.begin(); iter != indexIntMap.end(); iter++)
-    if (iter->second) { iter->second->writtenbackToDiskAll();
+    if (iter->second) {
+      iter->second->writtenbackToDiskAll();
       delete iter->second;
     }
 
@@ -98,6 +101,7 @@ void IndexManager::dropIndex(std::string file_path, int type) {
         delete iter->second;
         indexIntMap.erase(iter);
       }
+      break;
     }
     case 0: {
       floatMap::iterator iter = indexFloatMap.find(file_path);
@@ -107,6 +111,7 @@ void IndexManager::dropIndex(std::string file_path, int type) {
         delete iter->second;
         indexFloatMap.erase(iter);
       }
+      break;
     }
     default: {
       stringMap::iterator iter = indexStringMap.find(file_path);
@@ -136,6 +141,7 @@ int IndexManager::findIndex(std::string file_path, Data data) {
         std::cout << "Fail to find the index." << std::endl;
       else
         ret = iter->second->searchVal(data.datai);
+      break;
     }
     case 0: {
       floatMap::iterator iter = indexFloatMap.find(file_path);
@@ -143,6 +149,7 @@ int IndexManager::findIndex(std::string file_path, Data data) {
         std::cout << "Fail to find the index." << std::endl;
       else
         ret = iter->second->searchVal(data.dataf);
+      break;
     }
     default: {
       stringMap::iterator iter = indexStringMap.find(file_path);
@@ -168,8 +175,9 @@ void IndexManager::insertIndex(std::string file_path, Data data, int block_id) {
       intMap::iterator iter = indexIntMap.find(file_path);
       if (iter == indexIntMap.end())
         std::cout << "Fail to find the index." << std::endl;
-      else
+      else {
         iter->second->insertKey(data.datai, block_id);
+      }
       break;
     }
     case 0: {
@@ -228,14 +236,14 @@ void IndexManager::deleteIndexByKey(std::string file_path, Data data) {
 //输出：void
 //功能：范围查找，返回一定范围内的value
 //异常：
-void IndexManager::searchRange(std::string file_path, Data data1, Data data2, std::vector<int> &vals) {
+void IndexManager::searchRange(std::string file_path, Data data1, Data data2, std::vector<int> &vals, int flag) {
   // if (data1.type != data2.type) throw data_type_conflict();
   // flag有三种类型，0表示在data1与data2之间搜索，1表示从-INF搜索到data2，2表示从data1搜索到INF
-  int flag = 0;
-  if (data1.type == -2)
+  /*  if (data1.type == -2)
     flag = 1;
   else if (data2.type == -2)
     flag = 2;
+  */
 
   switch (data1.type) {
     case -1: {
@@ -268,6 +276,7 @@ void IndexManager::searchRange(std::string file_path, Data data1, Data data2, st
 int IndexManager::getDegree(int type) {
   // 计算B+树一个节点能够容纳多少数据
   int ret = (PAGESIZE - sizeof(int)) / (getKeySize(type) + sizeof(int));
+  ret = min(ret, PAGESIZE / ((type == -1 ? 10 : (type == 0 ? 20 : type - 1)) + 10));
 
   if (ret % 2 == 0) ret--;
 

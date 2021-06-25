@@ -48,7 +48,7 @@ public:
   //输出：void
   //功能：范围查找，返回一定范围内的value
   //异常：
-  void searchRange(std::string file_path, Data data1, Data data2, std::vector<int>& vals);
+  void searchRange(std::string file_path, Data data1, Data data2, std::vector<int>& vals, int flag);
 
   void writeBack();
 

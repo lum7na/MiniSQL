@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <queue>
@@ -427,14 +428,14 @@ bool NonLeaf<T>::Insert(T ele, int val) {
   } else {
     int l = 0;
     int r = this->key.size() - 1;
-    while (i < r) {
+    while (l < r) {
       int mid = (l + r + 1) / 2;
       if (this->key[mid] <= ele)
         l = mid;
       else
         r = mid - 1;
     }
-    if (this->key[i] > ele)
+    if (this->key[l] > ele)
       i = -1;
     else
       i = l;
@@ -466,14 +467,14 @@ bool NonLeaf<T>::Delete(T ele) {
   } else {
     int l = 0;
     int r = this->key.size() - 1;
-    while (i < r) {
+    while (l < r) {
       int mid = (l + r + 1) / 2;
       if (this->key[mid] <= ele)
         l = mid;
       else
         r = mid - 1;
     }
-    if (this->key[i] > ele)
+    if (this->key[l] > ele)
       i = -1;
     else
       i = l;
@@ -563,6 +564,7 @@ template <typename T>
 bool Leaf<T>::Insert(T ele, int val) {
   int index;
   TreeNode<T>* find_result = Find(ele, index);
+
   if (find_result != NULL && index >= 0) {
     cout << "Key already in Bplus Tree! Insert failed." << endl;
     return false;

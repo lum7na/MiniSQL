@@ -46,7 +46,7 @@ public:
   //功能：删除对应表中所有目标属性值满足Where条件的记录
   //异常：如果表不存在，抛出table_not_exist异常。如果属性不存在，抛出attribute_not_exist异常。
   //如果Where条件中的两个数据类型不匹配，抛出data_type_conflict异常。
-  int deleteRecord(std::string table_name , std::string target_attr , Where where);
+  int deleteRecord(std::string table_name , std::vector<std::string> target_attr , vector<Where> where);
   //输入：表名
   //输出：Table类型对象
   //功能：返回整张表
@@ -79,7 +79,7 @@ private:
   //带索引查找
   void searchWithIndex(std::string table_name , std::string target_attr , Where where , std::vector<int>& block_ids);
   //在块中进行条件删除
-  int conditionDeleteInBlock(std::string table_name , int block_id , Attribute attr , int index , Where where);
+  int conditionDeleteInBlock(std::string table_name , int block_id , Attribute attr , std::vector<int> index , std::vector<Where> where);
   //在块中进行条件查询
   void conditionSelectInBlock(std::string table_name , int block_id , Attribute attr , int index , Where where , std::vector<Tuple>& v);
 };

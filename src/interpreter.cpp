@@ -12,8 +12,8 @@ Interpreter::Interpreter() {
   };
   parser.load_grammar(R"(
 SQL <- SELECT / CREATE / DROP_TABLE / INDEX / DROP_INDEX / INSERT / DELETE / QUIT / EXEC 
-SELECT <- 'select' '*' 'from' any_name ';' / 'select' '*' 'from' any_name 'where' any_name any_cond (any_logic any_name any_cond)* ';'
-DELETE <- 'delete' 'from' any_name ';' / 'delete' 'from' any_name 'where' any_name any_cond (any_logic any_name any_cond)* ';'
+SELECT <- 'select' '*' 'from' any_name ';' / 'select' '*' 'from' any_name 'where' any_name any_cond ('and' any_name any_cond)* ';'
+DELETE <- 'delete' 'from' any_name ';' / 'delete' 'from' any_name 'where' any_name any_cond ('and' any_name any_cond)* ';'
 CREATE <- 'create' 'table' any_name '(' CREATE_def*  'primary key' '(' any_name ')' ')'';'
 CREATE_def <- any_name any_type 'unique' ',' /  any_name any_type ',' 
 DROP_TABLE <- 'drop' 'table' any_name ';'
@@ -23,17 +23,14 @@ INSERT <- 'insert' 'into' any_name 'values' '(' (any_val ','?)* ')'  ';'
 QUIT <- 'quit;'
 EXEC <- 'execfile' any_filename ';'
 any_type <- 'int' / 'float' / 'char' '(' any_int ')'
-any_name <- < [A-Za-z0-9]+ >
+any_name <- < [A-Za-z0-9_]+ >
 any_cond <- any_op ' ' any_val
-any_logic <- w_and / w_or
 any_op <- [<=>]*
 any_val <- any_string / any_float / any_int
 any_string <- < '\'' [a-z0-9A-Z-_ ]+ '\'' > 
 any_int <-  < '-'?[0-9]+ >
 any_float <-  < '-'?[0-9]*'.'[0-9]+ >
-any_filename <- < [A-Za-z0-9.]+ >
-w_and <- 'and'
-w_or <- 'or'
+any_filename <- < [A-Za-z0-9_.]+ >
 %whitespace <- [ \t\n]*
   )");
   assert(static_cast<bool>(parser) == true);
@@ -73,7 +70,7 @@ w_or <- 'or'
       return GREATER;
     } else if (op == ">=") {
       return GREATER_OR_EQUAL;
-    } else if (op == "!=") {
+    } else if (op == "<>") {
       return NOT_EQUAL;
     } else if (op == "=") {
       return EQUAL;
@@ -131,7 +128,7 @@ w_or <- 'or'
 
 bool Interpreter::getQuery(istream &is, int flag) {
   if (!flag) {
-    cout << ">>>";
+    cout << ">>> ";
   }
   string res;
   getline(is, res);
@@ -149,7 +146,7 @@ bool Interpreter::getQuery(istream &is, int flag) {
   while (res.back() != ';') {
     string res_t;
     if (!flag) {
-      cout << ">>>";
+      cout << ">>> ";
     }
     getline(is, res_t);
     res += res_t;
@@ -164,16 +161,12 @@ void Interpreter::EXEC_SELECT(const SemanticValues &vs) {
   vector<string> target_name;
   vector<Where> where_select;
   Table output_table;
-  char op = 0;
-  for (int i = 1; i < vs.size(); i += 3) {
+  for (int i = 1; i < vs.size(); i += 2) {
     target_name.push_back(any_cast<string>(vs[i]));
     where_select.push_back(any_cast<Where>(vs[i + 1]));
-    if (i + 2 < vs.size()) {
-      op = (any_cast<LOGIC>(vs[i + 2]) == AND);
-    }
   }
   API api;
-  output_table = api.selectRecord(table_name, target_name, where_select, op);
+  output_table = api.selectRecord(table_name, target_name, where_select);
   output_table.showTable();
 }
 
@@ -221,23 +214,25 @@ void Interpreter::EXEC_CREATE_INDEX(const SemanticValues &vs) {
 
 void Interpreter::EXEC_DELETE(const SemanticValues &vs) {
   string table_name = "";
-  string attr_name = "";
-  Where where;
+  vector<string> attr_name;
+  vector<Where> where;
   switch (vs.choice()) {
   case 0: {
     table_name = any_cast<string>(vs[0]);
-    attr_name = "";
     break;
   }
   case 1: {
     table_name = any_cast<string>(vs[0]);
-    attr_name = any_cast<string>(vs[1]);
-    where = any_cast<Where>(vs[2]);
+    for (int i = 1; i < vs.size(); ++i) {
+      attr_name.push_back(any_cast<string>(vs[i]));
+      where.push_back(any_cast<Where>(vs[++i]));
+    }
     break;
   }
   }
   API api;
-  api.deleteRecord(table_name, attr_name, where);
+  int res = api.deleteRecord(table_name, attr_name, where);
+  cout << "delete " << res << " records." << endl;
 }
 
 void Interpreter::EXEC_DROP_TABLE(const SemanticValues &vs) {
@@ -253,10 +248,16 @@ void Interpreter::EXEC_DROP_INDEX(const SemanticValues &vs) {
 }
 
 void Interpreter::EXEC_FILE(const SemanticValues &vs) {
+  chrono::steady_clock::time_point time_start = chrono::steady_clock::now();
   string filename = any_cast<string>(vs[0]);
   ifstream ifs(filename);
+  int num = 0;
   while (getQuery(ifs, 1)) {
+    ++num;
   };
+  chrono::steady_clock::time_point time_end = chrono::steady_clock::now();
+  chrono::duration<double> time_used = chrono::duration_cast<chrono::duration<double>>(time_end-time_start);
+  cout << ">>> " << num << " query finish in " << time_used.count() << "s" << endl;
   ifs.close();
 }
 

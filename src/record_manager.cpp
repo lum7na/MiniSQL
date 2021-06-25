@@ -1,5 +1,6 @@
 #include "record_manager.h"
 #include "exception.h"
+#include "index_manager.h"
 
 //输入：表名
 //输出：void
@@ -48,6 +49,10 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
     {
       data[idx].dataf = data[idx].datai;
       data[idx].type = 0;
+    }
+    while (data[idx].type > 1 && data[idx].type < attr.type[idx]) {
+      data[idx].type++;
+      data[idx].datas = data[idx].datas + "%";
     }
     if (data[idx].type != attr.type[idx]) throw tuple_type_conflict();
   }
@@ -117,6 +122,7 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
   int cnt = 0;
   while (p[cnt] != '\0' && cnt < PAGESIZE) cnt++;
 
+
   if (cnt + tuple_len < PAGESIZE) {
     // 空间足够大，则我们直接插入
     block_offset = block_num - 1;
@@ -129,6 +135,7 @@ void RecordManager::insertRecord(std::string table_name, Tuple &tuple) {
 
   int page_id = buffer_manager.getPageId(table_name, block_offset);
   buffer_manager.modifyPage(page_id);
+
 
   //更新索引
   for (int i = 0; i < attr.num; i++) {
@@ -190,7 +197,7 @@ int RecordManager::deleteRecord(std::string table_name) {
 //功能：删除对应表中所有目标属性值满足Where条件的记录
 //异常：如果表不存在，抛出table_not_exist异常。如果属性不存在，抛出attribute_not_exist异常。
 //如果Where条件中的两个数据类型不匹配，抛出data_type_conflict异常。
-int RecordManager::deleteRecord(std::string table_name, std::string target_attr, Where where) {
+int RecordManager::deleteRecord(std::string table_name , std::vector<std::string> target_attr , vector<Where> where) {
   int ret = 0;  // ret储存删除的记录数
 
   std::string tmp_name = table_name;
@@ -202,32 +209,37 @@ int RecordManager::deleteRecord(std::string table_name, std::string target_attr,
 
   // 检查属性是否存在
   Attribute attr = catalog_manager.getAttribute(tmp_name);
-  int index = -1;
-  for (int idx = 0; idx < attr.num; idx++)
-    if (attr.name[idx] == target_attr) {
-      index = idx;
-      break;
-    }
-  if (index == -1) throw attribute_not_exist();
+  vector<int> v_index;
+  for (int k = 0; k < target_attr.size(); ++k) {
+    int index = -1;
+    for (int idx = 0; idx < attr.num; idx++)
+      if (attr.name[idx] == target_attr[k]) {
+	index = idx;
+	break;
+      }
+    if (index == -1) throw attribute_not_exist();
+    v_index.push_back(index);
   
-  // 输入是int类型，但是属性为float类型，如将2.0写成2
-  if ((attr.type[index] == 0) && (where.data.type == -1))
-  {
-    where.data.dataf = where.data.datai;
-    where.data.type = 0;
-  }
+    // 输入是int类型，但是属性为float类型，如将2.0写成2
+    if ((attr.type[index] == 0) && (where[k].data.type == -1))
+      {
+	where[k].data.dataf = where[k].data.datai;
+	where[k].data.type = 0;
+      }
 
-  if (attr.type[index] != where.data.type) throw data_type_conflict();
+    while (where[k].data.type > 1 && where[k].data.type < attr.type[index]) {
+      where[k].data.type++;
+      where[k].data.datas = where[k].data.datas + "%";
+    }
+
+    if (attr.type[index] != where[k].data.type) throw data_type_conflict();
+  }
 
   int block_num = getBlockNum(table_name);
   IndexManager index_manager(tmp_name);
 
-  if (attr.has_index[index] && where.relation_character != NOT_EQUAL) {
-    std::vector<int> block_ids;
-    searchWithIndex(tmp_name, target_attr, where, block_ids);
-    for (int idx = 0; idx < block_ids.size(); idx++) ret += conditionDeleteInBlock(tmp_name, block_ids[idx], attr, index, where);
-  } else
-    for (int idx = 0; idx < block_num; idx++) ret += conditionDeleteInBlock(tmp_name, idx, attr, index, where);
+ 
+  for (int idx = 0; idx < block_num; idx++) ret += conditionDeleteInBlock(tmp_name, idx, attr, v_index, where);
 
   return ret;
 }
@@ -290,6 +302,11 @@ Table RecordManager::selectRecord(std::string table_name, std::string target_att
   {
     where.data.dataf = where.data.datai;
     where.data.type = 0;
+  }
+  
+  while (where.data.type > 1 && where.data.type < attr.type[index]) {
+    where.data.type++;
+    where.data.datas = where.data.datas + "%";
   }
 
   if (attr.type[index] != where.data.type) throw data_type_conflict();
@@ -432,15 +449,18 @@ Tuple RecordManager::readTuple(const char *p, Attribute attr) {
       case -1: {
         std::stringstream str_stream(tmp_str);
         str_stream >> data.datai;
-      } break;
+	break;
+      } 
       case 0: {
         std::stringstream str_stream(tmp_str);
         str_stream >> data.dataf;
-      } break;
+	break;
+      } 
       default: {
         std::stringstream str_stream(tmp_str);
         str_stream >> data.datas;
-      } break;
+	break;
+      } 
     }
 
     ret.addData(data);
@@ -509,7 +529,7 @@ void RecordManager::searchWithIndex(std::string table_name, std::string target_a
         tmp_data.datas = "";
         break;
     }
-    index_manager.searchRange(index_path, tmp_data, where.data, block_ids);
+    index_manager.searchRange(index_path, tmp_data, where.data, block_ids, 1);
   } else if (where.relation_character == GREATER || where.relation_character == GREATER_OR_EQUAL) {
     // 第二种情况，大于，搜索范围where.data到INF
     switch (where.data.type) {
@@ -526,53 +546,65 @@ void RecordManager::searchWithIndex(std::string table_name, std::string target_a
         tmp_data.datas = "";
         break;
     }
-    index_manager.searchRange(index_path, where.data, tmp_data, block_ids);
+    index_manager.searchRange(index_path, where.data, tmp_data, block_ids, 2);
   } else {
     // 第三种情况，等于或不等于，搜索范围where.data到where.data
-    index_manager.searchRange(index_path, where.data, where.data, block_ids);
+    index_manager.searchRange(index_path, where.data, where.data, block_ids, 0);
   }
 }
 
 //在块中进行条件删除
-int RecordManager::conditionDeleteInBlock(std::string table_name, int block_id, Attribute attr, int index, Where where) {
+int RecordManager::conditionDeleteInBlock(std::string table_name , int block_id , Attribute attr , std::vector<int> index , std::vector<Where> where) {
   int ret = 0;  // 返回删除的记录条数
+  std::string tmp_name = table_name;
   table_name = "./database/data/" + table_name;
   char *p = buffer_manager.getPage(table_name, block_id);
   int page_id = buffer_manager.getPageId(table_name, block_id);
   char *original_p = p;
-
+  IndexManager index_manager(tmp_name);
   while (*p != '\0' && p < original_p + PAGESIZE) {
     Tuple tuple = readTuple(p, attr);
-    std::vector<Data> data = tuple.getData();
-
-    switch (attr.type[index]) {
-      case -1:
-        if (isSatisfied(data[index].datai, where.data.datai, where.relation_character)) {
-          p = deleteRecord1(p);
-          ret++;
-        } else {
-          int len = getTupleLength(p);
-          p = p + len;
-        }
-        break;
-      case 0:
-        if (isSatisfied(data[index].dataf, where.data.dataf, where.relation_character)) {
-          p = deleteRecord1(p);
-          ret++;
-        } else {
-          int len = getTupleLength(p);
-          p = p + len;
-        }
-        break;
-      default:
-        if (isSatisfied(data[index].datas, where.data.datas, where.relation_character)) {
-          p = deleteRecord1(p);
-          ret++;
-        } else {
-          int len = getTupleLength(p);
-          p = p + len;
-        }
-        break;
+    if (!tuple.isDeleted()) {
+      std::vector<Data> data = tuple.getData();
+      bool ok = true;
+      for (int k = 0; k < index.size(); ++k) {
+	switch (attr.type[index[k]]) {
+	case -1:
+	  if (!isSatisfied(data[index[k]].datai, where[k].data.datai, where[k].relation_character)) {
+	    ok = false;
+	  }
+	  break;
+	case 0:
+	  if (!isSatisfied(data[index[k]].dataf, where[k].data.dataf, where[k].relation_character)) {
+	    ok = false;
+	  }
+	  break;
+	default:
+	  if (!isSatisfied(data[index[k]].datas, where[k].data.datas, where[k].relation_character)) {
+	    ok = false;
+	  }
+	  break;
+	}
+      }
+      if (ok) {
+	p = deleteRecord1(p);
+	for (int i = 0; i < attr.num; ++i) {
+	  if (attr.has_index[i]) {
+	    std::string attr_name = attr.name[i];
+	    // 根据index_manager的设计，需要修改index_path
+	    std::string index_path = "INDEX_FILE_" + attr_name + "_" + tmp_name;
+	    index_manager.deleteIndexByKey(index_path, data[i]);
+	  }
+	}
+      
+	ret++;
+      } else {
+	int len = getTupleLength(p);
+	p = p + len;
+      }
+    } else {
+      int len = getTupleLength(p);
+      p = p + len;
     }
   }
 
