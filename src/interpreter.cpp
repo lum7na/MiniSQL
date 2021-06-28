@@ -151,7 +151,9 @@ bool Interpreter::getQuery(istream &is, int flag) {
     getline(is, res_t);
     res += res_t;
   }
-  parser.parse(res);
+  if (!parser.parse(res)) {
+    throw input_format_error();
+  }
   return true;
 }
 
