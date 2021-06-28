@@ -6,8 +6,9 @@ using namespace std;
 using namespace peg;
 
 Interpreter::Interpreter() {
-  parser.log = [](size_t line, size_t col, const string& msg) {
-    cerr << "Please check the input format." << "\n";
+  parser.log = [](size_t line, size_t col, const string &msg) {
+    cerr << "Please check the input format."
+         << "\n";
     cerr << line << ":" << col << ": " << msg << endl;
   };
   parser.load_grammar(R"(
@@ -125,7 +126,6 @@ any_filename <- < [A-Za-z0-9_.]+ >
   parser.enable_packrat_parsing();  // Enable packrat parsing.
 }
 
-
 bool Interpreter::getQuery(istream &is, int flag) {
   if (!flag) {
     cout << ">>> ";
@@ -167,7 +167,10 @@ void Interpreter::EXEC_SELECT(const SemanticValues &vs) {
   }
   API api;
   output_table = api.selectRecord(table_name, target_name, where_select);
+  chrono::steady_clock::time_point time_start = chrono::steady_clock::now();
   output_table.showTable();
+  chrono::steady_clock::time_point time_end = chrono::steady_clock::now();
+  io_timer += chrono::duration_cast<chrono::duration<double>>(time_end - time_start);
 }
 
 void Interpreter::EXEC_CREATE_TABLE(const SemanticValues &vs) {
@@ -180,7 +183,7 @@ void Interpreter::EXEC_CREATE_TABLE(const SemanticValues &vs) {
   attr.primary_key = -1;
   string primary_key = any_cast<string>(vs.back());
   for (int i = 0; i < attr_cnt; ++i) {
-    auto def = any_cast<tuple<string, int, bool> >(vs[i + 1]);
+    auto def = any_cast<tuple<string, int, bool>>(vs[i + 1]);
     attr.name[i] = get<0>(def);
     attr.type[i] = get<1>(def);
     attr.unique[i] = get<2>(def);
@@ -217,18 +220,18 @@ void Interpreter::EXEC_DELETE(const SemanticValues &vs) {
   vector<string> attr_name;
   vector<Where> where;
   switch (vs.choice()) {
-  case 0: {
-    table_name = any_cast<string>(vs[0]);
-    break;
-  }
-  case 1: {
-    table_name = any_cast<string>(vs[0]);
-    for (int i = 1; i < vs.size(); ++i) {
-      attr_name.push_back(any_cast<string>(vs[i]));
-      where.push_back(any_cast<Where>(vs[++i]));
+    case 0: {
+      table_name = any_cast<string>(vs[0]);
+      break;
     }
-    break;
-  }
+    case 1: {
+      table_name = any_cast<string>(vs[0]);
+      for (int i = 1; i < vs.size(); ++i) {
+        attr_name.push_back(any_cast<string>(vs[i]));
+        where.push_back(any_cast<Where>(vs[++i]));
+      }
+      break;
+    }
   }
   API api;
   int res = api.deleteRecord(table_name, attr_name, where);
@@ -249,6 +252,7 @@ void Interpreter::EXEC_DROP_INDEX(const SemanticValues &vs) {
 
 void Interpreter::EXEC_FILE(const SemanticValues &vs) {
   chrono::steady_clock::time_point time_start = chrono::steady_clock::now();
+  io_timer = chrono::duration<double>::zero();
   string filename = any_cast<string>(vs[0]);
   ifstream ifs(filename);
   int num = 0;
@@ -256,8 +260,7 @@ void Interpreter::EXEC_FILE(const SemanticValues &vs) {
     ++num;
   };
   chrono::steady_clock::time_point time_end = chrono::steady_clock::now();
-  chrono::duration<double> time_used = chrono::duration_cast<chrono::duration<double>>(time_end-time_start);
+  chrono::duration<double> time_used = chrono::duration_cast<chrono::duration<double>>(time_end - time_start) - io_timer;
   cout << ">>> " << num << " query finish in " << time_used.count() << "s" << endl;
   ifs.close();
 }
-

@@ -85,6 +85,7 @@ class Interpreter {
  private:
   std::map<std::string, std::string> idx2table;
   peg::parser parser;
+  chrono::duration<double> io_timer;
 };
 
 template <class Type>
