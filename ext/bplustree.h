@@ -319,12 +319,12 @@ void NonLeaf<T>::RedistributeLeaf(int i) {
       left_len = new_len - this->child[i]->key.size();
       //对key值的重分配
       for (int j = 0; j < left_len; j++) {
-        child[i]->key.insert(child[i]->key.begin(), *(child[i-1]->key.end()-1-j));
+        child[i]->key.insert(child[i]->key.begin(), *(child[i - 1]->key.end() - 1 - j));
       }
       child[i - 1]->key.erase(child[i - 1]->key.end() - left_len, child[i - 1]->key.end());
       //对record的重分配
       for (int j = 0; j < left_len; j++) {
-        dynamic_cast<Leaf<T>*>(child[i])->vals.insert(dynamic_cast<Leaf<T>*>(child[i])->vals.begin(), *(dynamic_cast<Leaf<T>*>(child[i-1])->vals.end()-1-j));
+        dynamic_cast<Leaf<T>*>(child[i])->vals.insert(dynamic_cast<Leaf<T>*>(child[i])->vals.begin(), *(dynamic_cast<Leaf<T>*>(child[i - 1])->vals.end() - 1 - j));
       }
       dynamic_cast<Leaf<T>*>(child[i - 1])->vals.erase(dynamic_cast<Leaf<T>*>(child[i - 1])->vals.end() - left_len, dynamic_cast<Leaf<T>*>(child[i - 1])->vals.end());
       //然后修改对应的key值
@@ -567,7 +567,6 @@ bool Leaf<T>::Insert(T ele, int val) {
   TreeNode<T>* find_result = Find(ele, index);
 
   if (find_result != NULL && index >= 0) {
-    cout << "Key already in Bplus Tree! Insert failed." << endl;
     return false;
   } else if (find_result == NULL) {
     this->key.insert(this->key.begin(), ele);
@@ -586,7 +585,6 @@ bool Leaf<T>::Delete(T ele) {
   int index;
   TreeNode<T>* find_result = Find(ele, index);
   if (find_result == NULL || index < 0) {
-    cout << "Key not in Bplus tree! Delete failed!" << endl;
     return false;
   } else {
     this->key.erase(this->key.begin() + index, this->key.begin() + index + 1);
@@ -633,7 +631,6 @@ void BPlusTree<T>::searchRange(T& key1, T& key2, std::vector<int>& vals, int fla
       TreeNode<T>* fir;
       fir = root->Find(key1, index);
       if (fir == NULL && index == -1) {
-        cout << "Bplus tree empty! Search failed." << endl;
       } else if (fir == NULL && index == 0) {
         fir = root;
         for (int i = 0; i < root->key.size() && root->key[i] <= key2; i++) {
@@ -678,7 +675,6 @@ void BPlusTree<T>::searchRange(T& key1, T& key2, std::vector<int>& vals, int fla
       TreeNode<T>* fir;
       fir = root->Find(key1, index);
       if (fir == NULL && index == -1) {
-        cout << "Bplus tree empty! Search failed." << endl;
       } else if (fir == NULL && index == 0) {
         fir = root;
         for (int i = 0; i < root->key.size(); i++) {
