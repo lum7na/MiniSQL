@@ -82,10 +82,13 @@ class Interpreter {
   //功能：根据文件路径读取文件信息，并用于数据库的操作
   void EXEC_FILE(const SemanticValues &vs);
 
+  void closeIO();
+
  private:
   std::map<std::string, std::string> idx2table;
   peg::parser parser;
   chrono::duration<double> io_timer;
+  bool IO = true;
 };
 
 template <class Type>

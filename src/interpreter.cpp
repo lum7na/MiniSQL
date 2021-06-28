@@ -169,10 +169,12 @@ void Interpreter::EXEC_SELECT(const SemanticValues &vs) {
   }
   API api;
   output_table = api.selectRecord(table_name, target_name, where_select);
-  chrono::steady_clock::time_point time_start = chrono::steady_clock::now();
-  output_table.showTable();
-  chrono::steady_clock::time_point time_end = chrono::steady_clock::now();
-  io_timer += chrono::duration_cast<chrono::duration<double>>(time_end - time_start);
+  if (IO) {
+    chrono::steady_clock::time_point time_start = chrono::steady_clock::now();
+    output_table.showTable();
+    chrono::steady_clock::time_point time_end = chrono::steady_clock::now();
+    io_timer += chrono::duration_cast<chrono::duration<double>>(time_end - time_start);
+  }
 }
 
 void Interpreter::EXEC_CREATE_TABLE(const SemanticValues &vs) {
@@ -257,6 +259,9 @@ void Interpreter::EXEC_FILE(const SemanticValues &vs) {
   io_timer = chrono::duration<double>::zero();
   string filename = any_cast<string>(vs[0]);
   ifstream ifs(filename);
+  if (!ifs.is_open()) {
+    throw file_not_exist();
+  }
   int num = 0;
   while (getQuery(ifs, 1)) {
     ++num;
@@ -266,3 +271,5 @@ void Interpreter::EXEC_FILE(const SemanticValues &vs) {
   cout << ">>> " << num << " query finish in " << time_used.count() << "s" << endl;
   ifs.close();
 }
+
+void Interpreter::closeIO() { IO = false; }

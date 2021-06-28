@@ -42,6 +42,10 @@ class input_format_error : public std::exception {
   const char* what() const throw() { return "Input format error!"; }
 };
 
+class file_not_exist : public std::exception {
+  const char* what() const throw() { return "File not exist!"; }
+};
+
 class exit_command : public std::exception {};
 
 class unique_conflict : public std::exception {

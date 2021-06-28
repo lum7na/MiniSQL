@@ -7,6 +7,16 @@ BufferManager buffer_manager(MAXFRAMESIZE);
 Interpreter query;
 
 int main(int argc, const char* argv[]) {
+  system("mkdir -p database");
+  system("mkdir -p ./database/index");
+  system("mkdir -p ./database/catalog");
+  system("mkdir -p ./database/data");
+  system("touch ./database/catalog/catalog_file");
+  if (argc > 1) {
+    if (string(argv[1]) == "without_io") {
+      query.closeIO();
+    }
+  }
   std::cout << ">>> Welcome to MiniSQL" << std::endl;
   try {
     while (1) {
